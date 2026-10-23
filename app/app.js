@@ -119,7 +119,17 @@ class AppController {
     document.getElementById('btn-add-milestone').addEventListener('click', () => this.handleAddTask(true));
     document.getElementById('btn-indent').addEventListener('click', () => this.handleIndent());
     document.getElementById('btn-outdent').addEventListener('click', () => this.handleOutdent());
+    document.getElementById('btn-move-up').addEventListener('click', () => this.handleMoveTask(-1));
+    document.getElementById('btn-move-down').addEventListener('click', () => this.handleMoveTask(1));
+    document.getElementById('btn-task-card').addEventListener('click', () => this.handleOpenTaskCard());
+    document.getElementById('btn-save-task-card').addEventListener('click', () => this.handleSaveTaskCard());
     document.getElementById('btn-delete-task').addEventListener('click', () => this.handleDeleteTask());
+
+    // Task Search & Filter (FR-6.10)
+    const searchInput = document.getElementById('task-search-input');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => this.handleSearchTasks(e.target.value));
+    }
 
     // Scale
     document.getElementById('select-scale').addEventListener('change', (e) => {
@@ -153,9 +163,8 @@ class AppController {
       });
     }
 
-    // Keyboard Shortcuts (FR-6.08: Insert - новая задача, Delete - удалить задачу)
+    // Keyboard Shortcuts (FR-6.08: Insert, Delete, Alt+Up, Alt+Down)
     window.addEventListener('keydown', (e) => {
-      // Ignore if focus is in an input or textarea
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
 
       if (e.key === 'Insert') {
@@ -164,6 +173,12 @@ class AppController {
       } else if (e.key === 'Delete') {
         e.preventDefault();
         this.handleDeleteTask();
+      } else if (e.altKey && e.key === 'ArrowUp') {
+        e.preventDefault();
+        this.handleMoveTask(-1);
+      } else if (e.altKey && e.key === 'ArrowDown') {
+        e.preventDefault();
+        this.handleMoveTask(1);
       }
     });
 
@@ -515,6 +530,12 @@ class AppController {
         });
       });
 
+      // Double click to open task card (FR-6.07)
+      row.addEventListener('dblclick', () => {
+        this.selectedTaskId = t.id;
+        this.handleOpenTaskCard();
+      });
+
       // Inline edits
       const nameInput = row.querySelector('input[data-field="name"]');
       nameInput.addEventListener('change', (e) => {
@@ -548,6 +569,62 @@ class AppController {
 
       bodyEl.appendChild(row);
     });
+
+    // Ghost Row for fast task creation (FR-6.03)
+    const ghostRow = document.createElement('div');
+    ghostRow.className = 'task-row ghost-row';
+    ghostRow.innerHTML = `
+      <div class="col-num" style="opacity: 0.5;">+</div>
+      <div class="col-name" style="padding-left: 8px;">
+        <input type="text" placeholder="+ Добавить задачу... (нажмите Enter)" data-role="ghost-task-input">
+      </div>
+      <div class="col-dur"></div>
+      <div class="col-start"></div>
+      <div class="col-finish"></div>
+      <div class="col-preds"></div>
+    `;
+
+    const ghostInput = ghostRow.querySelector('input[data-role="ghost-task-input"]');
+    if (ghostInput) {
+      const commitGhostTask = () => {
+        const val = ghostInput.value.trim();
+        if (val) {
+          const isMilestone = val.startsWith('◆') || val.startsWith('*');
+          const cleanName = val.replace(/^[◆*]\s*/, '');
+          const newId = `task-${Date.now()}`;
+          const newTask = {
+            id: newId,
+            external_number: String(this.tasks.length + 1),
+            name: cleanName,
+            duration_days: isMilestone ? 0 : 1,
+            is_milestone: isMilestone,
+            percent_complete: 0,
+            parent_id: null,
+            level: 0,
+            sort_order: this.tasks.length
+          };
+          this.tasks.push(newTask);
+          this.selectedTaskId = newId;
+          this.recalculateSchedule();
+          setTimeout(() => {
+            const nextGhost = document.querySelector('input[data-role="ghost-task-input"]');
+            if (nextGhost) nextGhost.focus();
+          }, 60);
+        }
+      };
+
+      ghostInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          commitGhostTask();
+        }
+      });
+      ghostInput.addEventListener('blur', () => {
+        commitGhostTask();
+      });
+    }
+
+    bodyEl.appendChild(ghostRow);
   }
 
   updateTaskPredecessors(taskId, predStr) {
@@ -677,6 +754,112 @@ class AppController {
     }
 
     this.recalculateSchedule();
+  }
+
+  handleMoveTask(direction) {
+    if (!this.selectedTaskId) return;
+    const index = this.tasks.findIndex(t => t.id === this.selectedTaskId);
+    if (index < 0) return;
+
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= this.tasks.length) return;
+
+    // Swap tasks
+    const [moved] = this.tasks.splice(index, 1);
+    this.tasks.splice(targetIndex, 0, moved);
+
+    // Re-index sort order
+    this.tasks.forEach((t, i) => {
+      t.sort_order = i;
+    });
+
+    this.recalculateSchedule();
+
+    setTimeout(() => {
+      const row = document.querySelector(`.task-row.selected`);
+      if (row) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 40);
+  }
+
+  handleOpenTaskCard() {
+    if (!this.selectedTaskId) {
+      if (this.tasks.length > 0) {
+        this.selectedTaskId = this.tasks[0].id;
+      } else {
+        return;
+      }
+    }
+
+    const task = this.tasks.find(t => t.id === this.selectedTaskId);
+    if (!task) return;
+
+    const taskMap = new Map(this.tasks.map(t => [t.id, t.external_number]));
+    const taskDeps = this.dependencies.filter(d => d.succ_id === task.id);
+    const predsStr = ValidationUtils.formatPredecessors(taskDeps, taskMap);
+
+    document.getElementById('card-task-id').value = task.id;
+    document.getElementById('card-task-name').value = task.name || '';
+    document.getElementById('card-task-duration').value = task.duration_days ?? 1;
+    document.getElementById('card-task-percent').value = task.percent_complete ?? 0;
+    document.getElementById('card-task-start').value = task.start_date || '';
+    document.getElementById('card-task-owner').value = task.owner || '';
+    document.getElementById('card-task-preds').value = predsStr;
+    document.getElementById('card-task-note').value = task.notes || '';
+
+    this.openModal('modal-task-card');
+  }
+
+  handleSaveTaskCard() {
+    const id = document.getElementById('card-task-id').value;
+    const task = this.tasks.find(t => t.id === id);
+    if (!task) return;
+
+    const name = document.getElementById('card-task-name').value.trim();
+    if (!name) {
+      alert('Укажите наименование задачи');
+      return;
+    }
+
+    task.name = name;
+    const dur = parseInt(document.getElementById('card-task-duration').value, 10);
+    task.duration_days = isNaN(dur) || dur < 0 ? 0 : dur;
+    task.is_milestone = task.duration_days === 0;
+
+    const pct = parseInt(document.getElementById('card-task-percent').value, 10);
+    task.percent_complete = isNaN(pct) ? 0 : Math.max(0, Math.min(100, pct));
+
+    const startDate = document.getElementById('card-task-start').value;
+    if (startDate) {
+      task.start_date = startDate;
+    }
+
+    task.owner = document.getElementById('card-task-owner').value.trim();
+    task.notes = document.getElementById('card-task-note').value.trim();
+
+    const predsStr = document.getElementById('card-task-preds').value.trim();
+    this.updateTaskPredecessors(task.id, predsStr);
+
+    this.closeModal('modal-task-card');
+    this.recalculateSchedule();
+  }
+
+  handleSearchTasks(query) {
+    const term = (query || '').trim().toLowerCase();
+    const rows = document.querySelectorAll('.task-row:not(.ghost-row)');
+
+    rows.forEach(r => {
+      const nameInput = r.querySelector('input[data-field="name"]');
+      const text = nameInput ? nameInput.value.toLowerCase() : '';
+      if (!term) {
+        r.classList.remove('search-match', 'search-hidden');
+      } else if (text.includes(term)) {
+        r.classList.add('search-match');
+        r.classList.remove('search-hidden');
+      } else {
+        r.classList.remove('search-match');
+        r.classList.add('search-hidden');
+      }
+    });
   }
 
   // --- Excel Import & Export ---

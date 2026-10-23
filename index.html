@@ -59,7 +59,14 @@
           <button class="btn btn-sm" id="btn-add-milestone">◆ Веха</button>
           <button class="btn btn-sm" id="btn-indent" title="Сделать подзадачей (WBS)">➔ Уровень</button>
           <button class="btn btn-sm" id="btn-outdent" title="Поднять уровень (WBS)">⬅ Назад</button>
+          <button class="btn btn-sm" id="btn-move-up" title="Переместить задачу вверх (Alt+Up)">▲</button>
+          <button class="btn btn-sm" id="btn-move-down" title="Переместить задачу вниз (Alt+Down)">▼</button>
+          <button class="btn btn-sm" id="btn-task-card" title="Открыть карточку задачи (двойной клик)">📝 Карточка</button>
           <button class="btn btn-sm btn-danger" id="btn-delete-task" title="Удалить выбранную задачу">🗑</button>
+        </div>
+
+        <div class="toolbar-group">
+          <input type="text" id="task-search-input" placeholder="🔍 Поиск задач..." style="background: var(--bg-tertiary); color: #fff; border: 1px solid var(--border-color); padding: 5px 10px; border-radius: var(--radius-sm); font-size: 0.78rem; width: 140px; outline: none;">
         </div>
 
         <div class="toolbar-group">
@@ -70,8 +77,8 @@
         </div>
 
         <div class="toolbar-group">
-          <button class="btn btn-sm" id="btn-transfer-peer" title="Сформировать файл передачи коллеге">📤 Передать проект</button>
-          <button class="btn btn-sm" id="btn-return-peer" title="Вернуть изменения автору">🔄 Вернуть изменения</button>
+          <button class="btn btn-sm" id="btn-transfer-peer" title="Сформировать файл передачи коллеге">📤 Передать</button>
+          <button class="btn btn-sm" id="btn-return-peer" title="Вернуть изменения автору">🔄 Возврат</button>
         </div>
 
         <div class="toolbar-group" style="border-right: none;">
@@ -243,6 +250,55 @@
       <div class="modal-footer">
         <button class="btn" id="btn-reject-diff">Отклонить изменения</button>
         <button class="btn btn-primary" id="btn-accept-diff">Принять изменения в проект</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Task Card (FR-6.07) -->
+  <div class="modal-overlay" id="modal-task-card">
+    <div class="modal-window" style="width: 580px;">
+      <div class="modal-header">
+        <span>Карточка задачи</span>
+        <button class="btn btn-sm" onclick="app.closeModal('modal-task-card')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="card-task-id">
+        <div class="form-group">
+          <label>Наименование задачи *</label>
+          <input type="text" id="card-task-name" placeholder="Название задачи">
+        </div>
+        <div style="display: flex; gap: 12px;">
+          <div class="form-group" style="flex: 1;">
+            <label>Длительность (раб. дни)</label>
+            <input type="number" id="card-task-duration" min="0" max="9999">
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label>Процент выполнения (%):</label>
+            <input type="number" id="card-task-percent" min="0" max="100" placeholder="0">
+          </div>
+        </div>
+        <div style="display: flex; gap: 12px;">
+          <div class="form-group" style="flex: 1;">
+            <label>Дата начала (расчётная/фикс.)</label>
+            <input type="date" id="card-task-start">
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label>Ответственный</label>
+            <input type="text" id="card-task-owner" placeholder="Иванов И.И.">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Предшественники (связи)</label>
+          <input type="text" id="card-task-preds" placeholder="Например: 2НС+1д, 4ОО">
+        </div>
+        <div class="form-group">
+          <label>Примечание / Комментарий</label>
+          <textarea id="card-task-note" rows="3" placeholder="Заметки по выполнению задачи..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="app.closeModal('modal-task-card')">Отмена</button>
+        <button class="btn btn-primary" id="btn-save-task-card">Сохранить изменения</button>
       </div>
     </div>
   </div>

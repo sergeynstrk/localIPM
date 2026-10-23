@@ -442,6 +442,35 @@ body {
   outline: none;
 }
 
+.task-row.ghost-row {
+  opacity: 0.65;
+  border-bottom: 1px dashed var(--border-color);
+  font-style: italic;
+}
+
+.task-row.ghost-row:hover,
+.task-row.ghost-row:focus-within {
+  opacity: 1;
+  background: rgba(79, 70, 229, 0.08);
+}
+
+.task-row.ghost-row input {
+  color: var(--text-muted);
+}
+
+.task-row.ghost-row input:focus {
+  color: var(--text-primary);
+  font-style: normal;
+}
+
+.task-row.search-match {
+  background: rgba(245, 158, 11, 0.12) !important;
+}
+
+.task-row.search-hidden {
+  display: none !important;
+}
+
 /* Modals */
 .modal-overlay {
   position: fixed;
