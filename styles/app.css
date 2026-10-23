@@ -381,7 +381,38 @@ body {
   flex-shrink: 0;
 }
 
-.col-num { width: 44px; text-align: center; flex-shrink: 0; }
+.col-num {
+  width: 44px;
+  text-align: center;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.task-row .col-num {
+  cursor: grab;
+  color: var(--text-muted);
+  transition: all 0.15s ease;
+  border-radius: var(--radius-sm);
+  margin: 2px 0;
+}
+
+.task-row .col-num:hover {
+  color: #fff;
+  background: rgba(99, 102, 241, 0.25);
+}
+
+.task-row.dragging {
+  opacity: 0.4;
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.task-row.drag-over-top {
+  border-top: 2px solid var(--accent-blue) !important;
+}
+
+.task-row.drag-over-bottom {
+  border-bottom: 2px solid var(--accent-blue) !important;
+}
 .col-name { flex: 1; min-width: 160px; padding: 0 8px; }
 .col-dur { width: 68px; text-align: center; flex-shrink: 0; }
 .col-start { width: 92px; text-align: center; flex-shrink: 0; }

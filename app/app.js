@@ -121,8 +121,10 @@ class AppController {
     document.getElementById('btn-outdent').addEventListener('click', () => this.handleOutdent());
     document.getElementById('btn-move-up').addEventListener('click', () => this.handleMoveTask(-1));
     document.getElementById('btn-move-down').addEventListener('click', () => this.handleMoveTask(1));
-    document.getElementById('btn-task-card').addEventListener('click', () => this.handleOpenTaskCard());
-    document.getElementById('btn-save-task-card').addEventListener('click', () => this.handleSaveTaskCard());
+    const btnTaskCard = document.getElementById('btn-task-card');
+    if (btnTaskCard) btnTaskCard.addEventListener('click', () => this.handleOpenTaskCard());
+    const btnSaveCard = document.getElementById('btn-save-task-card');
+    if (btnSaveCard) btnSaveCard.addEventListener('click', () => this.handleSaveTaskCard());
     document.getElementById('btn-delete-task').addEventListener('click', () => this.handleDeleteTask());
 
     // Task Search & Filter (FR-6.10)
@@ -492,7 +494,7 @@ class AppController {
       const predsStr = ValidationUtils.formatPredecessors(depsBySucc.get(t.id) || [], taskMap);
 
       row.innerHTML = `
-        <div class="col-num">${t.external_number || (idx + 1)}</div>
+        <div class="col-num" title="Потяните для изменения порядка задач" draggable="true">${t.external_number || (idx + 1)}</div>
         <div class="col-name" style="padding-left: ${indentPx + 8}px;">
           ${t.is_milestone ? '◆ ' : ''}
           <input type="text" value="${t.name}" data-field="name" data-id="${t.id}">
@@ -506,6 +508,67 @@ class AppController {
           <input type="text" style="text-align: center;" value="${predsStr}" data-field="preds" data-id="${t.id}">
         </div>
       `;
+
+      // Drag and Drop reordering by numbers (FR-6.05)
+      const numCol = row.querySelector('.col-num');
+      row.dataset.taskId = t.id;
+      row.dataset.index = idx;
+
+      numCol.addEventListener('dragstart', (e) => {
+        row.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', t.id);
+      });
+
+      numCol.addEventListener('dragend', () => {
+        row.classList.remove('dragging');
+        document.querySelectorAll('.task-row').forEach(r => {
+          r.classList.remove('drag-over-top', 'drag-over-bottom');
+        });
+      });
+
+      row.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const rect = row.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        if (e.clientY < midY) {
+          row.classList.add('drag-over-top');
+          row.classList.remove('drag-over-bottom');
+        } else {
+          row.classList.add('drag-over-bottom');
+          row.classList.remove('drag-over-top');
+        }
+      });
+
+      row.addEventListener('dragleave', () => {
+        row.classList.remove('drag-over-top', 'drag-over-bottom');
+      });
+
+      row.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const draggedId = e.dataTransfer.getData('text/plain');
+        if (!draggedId || draggedId === t.id) return;
+
+        const fromIdx = this.tasks.findIndex(item => item.id === draggedId);
+        const toIdx = this.tasks.findIndex(item => item.id === t.id);
+        if (fromIdx < 0 || toIdx < 0) return;
+
+        const rect = row.getBoundingClientRect();
+        const placeAfter = e.clientY >= rect.top + rect.height / 2;
+
+        const [movedTask] = this.tasks.splice(fromIdx, 1);
+        let insertIdx = this.tasks.findIndex(item => item.id === t.id);
+        if (placeAfter) insertIdx += 1;
+
+        this.tasks.splice(insertIdx, 0, movedTask);
+        this.tasks.forEach((taskItem, i) => {
+          taskItem.sort_order = i;
+        });
+
+        this.selectedTaskId = movedTask.id;
+        this.recalculateSchedule();
+      });
 
       row.addEventListener('click', (e) => {
         if (this.selectedTaskId !== t.id) {
@@ -528,12 +591,6 @@ class AppController {
             this.gantt.render();
           }
         });
-      });
-
-      // Double click to open task card (FR-6.07)
-      row.addEventListener('dblclick', () => {
-        this.selectedTaskId = t.id;
-        this.handleOpenTaskCard();
       });
 
       // Inline edits
