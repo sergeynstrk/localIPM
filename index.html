@@ -68,19 +68,27 @@
       <div class="toolbar">
         <!-- Task Operations Group -->
         <div class="toolbar-group">
-          <button class="btn btn-sm btn-primary" id="btn-add-task">+ Задача</button>
-          <button class="btn btn-sm" id="btn-add-milestone">◆ Веха</button>
-          <button class="btn btn-sm" id="btn-edit-task">✏️ Изменить</button>
+          <button class="btn btn-sm btn-primary" id="btn-add-task">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> Задача
+          </button>
+          <button class="btn btn-sm" id="btn-add-milestone">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l10 10-10 10L2 12z"/></svg> Веха
+          </button>
+          <button class="btn btn-sm" id="btn-edit-task">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Изменить
+          </button>
           <span class="tip-q" data-tooltip="Добавление и редактирование задач или вех (нулевая длительность)">?</span>
         </div>
 
         <!-- Hierarchy & Order Group -->
         <div class="toolbar-group">
-          <button class="btn btn-sm" id="btn-indent">➔ Уровень</button>
-          <button class="btn btn-sm" id="btn-outdent">⬅ Назад</button>
-          <button class="btn btn-sm" id="btn-move-up">▲</button>
-          <button class="btn btn-sm" id="btn-move-down">▼</button>
-          <button class="btn btn-sm btn-danger" id="btn-delete-task">🗑</button>
+          <button class="btn btn-sm" id="btn-indent" title="Сделать подзадачей (WBS)">➔ Уровень</button>
+          <button class="btn btn-sm" id="btn-outdent" title="Поднять уровень (WBS)">⬅ Назад</button>
+          <button class="btn btn-sm" id="btn-move-up" title="Вверх (Alt+Up)">▲</button>
+          <button class="btn btn-sm" id="btn-move-down" title="Вниз (Alt+Down)">▼</button>
+          <button class="btn btn-sm btn-danger" id="btn-delete-task" title="Удалить выбранную задачу">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
           <span class="tip-q" data-tooltip="Управление структурой WBS (вложенность) и порядок строк. Задачи также можно перемещать мышью за номер">?</span>
         </div>
 
@@ -92,23 +100,36 @@
         <!-- Smart Tools Group (Health Audit, What-If, Resources) -->
         <div class="toolbar-group">
           <button class="btn btn-sm" id="btn-open-health" style="border-color: rgba(16, 185, 129, 0.4);">
-            🩺 Аудит <span id="toolbar-health-badge" style="background: #10b981; color: #fff; padding: 1px 5px; border-radius: 10px; font-size: 0.68rem; margin-left: 2px;">100%</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            Аудит <span id="toolbar-health-badge" style="background: #10b981; color: #fff; padding: 1px 5px; border-radius: 10px; font-size: 0.68rem; margin-left: 2px;">100%</span>
           </button>
           <span class="tip-q" data-tooltip="Интеллектуальная проверка качества расписания (DCMA-14): висячие концы, циклы, скрытые риски">?</span>
 
-          <button class="btn btn-sm" id="btn-toggle-sandbox" style="border-color: rgba(245, 158, 11, 0.4);">⚡ Что-если</button>
+          <button class="btn btn-sm" id="btn-toggle-sandbox" style="border-color: rgba(245, 158, 11, 0.4);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            Что-если
+          </button>
           <span class="tip-q" data-tooltip="Сценарное моделирование: тестирование сдвигов сроков без риска испортить основной план">?</span>
 
-          <button class="btn btn-sm" id="btn-toggle-resources">👥 Ресурсы</button>
+          <button class="btn btn-sm" id="btn-toggle-resources">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Ресурсы
+          </button>
           <span class="tip-q" data-tooltip="Панель балансировки загрузки исполнителей и выявления перегрузок">?</span>
         </div>
 
         <!-- Unified Import / Export Hub -->
         <div class="toolbar-group">
-          <button class="btn btn-sm" id="btn-open-import-hub" style="background: linear-gradient(135deg, #1e293b, #334155);">📥 Импорт...</button>
+          <button class="btn btn-sm" id="btn-open-import-hub" style="background: linear-gradient(135deg, #1e293b, #334155);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Импорт...
+          </button>
           <span class="tip-q" data-tooltip="Единый центр импорта: Excel (.xlsx/.csv), вставка из буфера обмена (TSV), пакет от коллеги (*.lpmproject)">?</span>
 
-          <button class="btn btn-sm" id="btn-open-export-hub" style="background: linear-gradient(135deg, #1e293b, #334155);">📤 Экспорт...</button>
+          <button class="btn btn-sm" id="btn-open-export-hub" style="background: linear-gradient(135deg, #1e293b, #334155);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Экспорт...
+          </button>
           <span class="tip-q" data-tooltip="Единый центр выгрузки: Excel, отчёт для руководства (PDF/PNG), передача проекта коллеге">?</span>
         </div>
 
