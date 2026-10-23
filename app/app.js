@@ -56,6 +56,21 @@ class AppController {
       };
     }
 
+    // Connect interactive bar drag duration commit and task select
+    this.gantt.onTaskSelect = (taskId) => {
+      this.selectedTaskId = taskId;
+      document.querySelectorAll('.task-row').forEach(r => r.classList.remove('selected'));
+      const row = document.querySelector(`.task-row[data-task-id="${taskId}"]`);
+      if (row) {
+        row.classList.add('selected');
+        row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    };
+
+    this.gantt.onTaskDurationCommit = () => {
+      this.recalculateSchedule();
+    };
+
     // 3. Service Worker registration (disabled on localhost for immediate hot-reloads)
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http') && !window.location.hostname.includes('localhost') && window.location.hostname !== '127.0.0.1') {
       try {
@@ -119,10 +134,10 @@ class AppController {
     document.getElementById('btn-add-milestone').addEventListener('click', () => this.handleAddTask(true));
     document.getElementById('btn-indent').addEventListener('click', () => this.handleIndent());
     document.getElementById('btn-outdent').addEventListener('click', () => this.handleOutdent());
+    const btnEditTask = document.getElementById('btn-edit-task');
+    if (btnEditTask) btnEditTask.addEventListener('click', () => this.handleOpenTaskCard());
     document.getElementById('btn-move-up').addEventListener('click', () => this.handleMoveTask(-1));
     document.getElementById('btn-move-down').addEventListener('click', () => this.handleMoveTask(1));
-    const btnTaskCard = document.getElementById('btn-task-card');
-    if (btnTaskCard) btnTaskCard.addEventListener('click', () => this.handleOpenTaskCard());
     const btnSaveCard = document.getElementById('btn-save-task-card');
     if (btnSaveCard) btnSaveCard.addEventListener('click', () => this.handleSaveTaskCard());
     document.getElementById('btn-delete-task').addEventListener('click', () => this.handleDeleteTask());
@@ -495,8 +510,8 @@ class AppController {
 
       row.innerHTML = `
         <div class="col-num" title="Потяните для изменения порядка задач" draggable="true">${t.external_number || (idx + 1)}</div>
-        <div class="col-name" style="padding-left: ${indentPx + 8}px;">
-          ${t.is_milestone ? '◆ ' : ''}
+        <div class="col-name" style="padding-left: ${indentPx + 8}px; display: flex; align-items: center;">
+          ${t.is_milestone ? '<span class="milestone-badge" title="Контрольная точка (веха)"></span>' : ''}
           <input type="text" value="${t.name}" data-field="name" data-id="${t.id}">
         </div>
         <div class="col-dur">

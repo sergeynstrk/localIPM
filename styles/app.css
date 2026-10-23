@@ -403,7 +403,7 @@ body {
 }
 
 .col-num {
-  width: 44px;
+  width: 56px;
   text-align: center;
   flex-shrink: 0;
   user-select: none;
@@ -411,15 +411,41 @@ body {
 
 .task-row .col-num {
   cursor: grab;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
   color: var(--text-muted);
   transition: all 0.15s ease;
   border-radius: var(--radius-sm);
-  margin: 2px 0;
+  margin: 2px 2px;
+  padding: 2px 0;
 }
 
 .task-row .col-num:hover {
   color: #fff;
   background: rgba(99, 102, 241, 0.25);
+}
+
+.milestone-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border-radius: 3px;
+  transform: rotate(45deg);
+  margin-right: 8px;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
+  flex-shrink: 0;
+}
+
+.milestone-badge::after {
+  content: '';
+  width: 5px;
+  height: 5px;
+  background: #ffffff;
+  border-radius: 1px;
 }
 
 .task-row.dragging {

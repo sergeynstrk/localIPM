@@ -414,18 +414,104 @@ export class GanttChart {
   }
 
   initEvents() {
-    let isDragging = false;
+    let isPanning = false;
+    let isResizing = false;
+    let resizingTask = null;
+    let initialDuration = 0;
+    let resizeStartX = 0;
     let startX = 0;
     let startY = 0;
 
+    // Helper to find task bar at coordinates and check if near right edge (handle)
+    const getTaskAtPos = (clientX, clientY) => {
+      const rect = this.canvas.getBoundingClientRect();
+      const mouseX = clientX - rect.left;
+      const mouseY = clientY - rect.top;
+
+      const rHeight = this.options.rowHeight;
+      const headerH = this.options.headerHeight;
+
+      if (mouseY < headerH) return null;
+
+      const rowIndex = Math.floor((mouseY - headerH + this.scrollY) / rHeight);
+      if (rowIndex < 0 || rowIndex >= this.tasks.length) return null;
+
+      const task = this.tasks[rowIndex];
+      if (task.is_milestone || task.is_summary) return { task, isHandle: false, mouseX, mouseY };
+
+      const barStartX = this.dateToX(task.start_date) - this.scrollX;
+      const barFinishX = this.dateToX(task.finish_date) + (this.options.scale === 'day' ? this.options.dayWidth : 0) - this.scrollX;
+
+      // Handle is within 10px of the right finish edge
+      const isNearRightEdge = Math.abs(mouseX - barFinishX) <= 10;
+      const isInsideBar = mouseX >= barStartX && mouseX <= barFinishX;
+
+      return {
+        task,
+        isHandle: isNearRightEdge,
+        isInside: isInsideBar,
+        mouseX,
+        mouseY
+      };
+    };
+
+    this.canvas.addEventListener('mousemove', (e) => {
+      if (isResizing) return;
+      if (isPanning) return;
+
+      const hit = getTaskAtPos(e.clientX, e.clientY);
+      if (hit && hit.isHandle) {
+        this.canvas.style.cursor = 'ew-resize';
+      } else if (hit && hit.isInside) {
+        this.canvas.style.cursor = 'pointer';
+      } else {
+        this.canvas.style.cursor = 'default';
+      }
+    });
+
     this.canvas.addEventListener('mousedown', (e) => {
-      isDragging = true;
+      const hit = getTaskAtPos(e.clientX, e.clientY);
+
+      if (hit && hit.isHandle && !hit.task.is_summary && !hit.task.is_milestone) {
+        // Start duration resize
+        isResizing = true;
+        resizingTask = hit.task;
+        initialDuration = hit.task.duration_days || 1;
+        resizeStartX = e.clientX;
+        this.canvas.style.cursor = 'ew-resize';
+        e.preventDefault();
+        return;
+      }
+
+      if (hit && hit.isInside) {
+        this.selectedTaskId = hit.task.id;
+        if (this.onTaskSelect) this.onTaskSelect(hit.task.id);
+        this.render();
+      }
+
+      // Default: panning
+      isPanning = true;
       startX = e.clientX;
       startY = e.clientY;
     });
 
     window.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
+      if (isResizing && resizingTask) {
+        const dx = e.clientX - resizeStartX;
+        const daysDiff = Math.round(dx / this.options.dayWidth);
+        const newDuration = Math.max(1, initialDuration + daysDiff);
+
+        if (resizingTask.duration_days !== newDuration) {
+          resizingTask.duration_days = newDuration;
+          if (this.onTaskDurationChange) {
+            this.onTaskDurationChange(resizingTask.id, newDuration);
+          }
+          this.render();
+        }
+        return;
+      }
+
+      if (!isPanning) return;
       const dx = e.clientX - startX;
       const dy = e.clientY - startY;
       startX = e.clientX;
@@ -438,7 +524,15 @@ export class GanttChart {
     });
 
     window.addEventListener('mouseup', () => {
-      isDragging = false;
+      if (isResizing) {
+        isResizing = false;
+        resizingTask = null;
+        this.canvas.style.cursor = 'default';
+        if (this.onTaskDurationCommit) {
+          this.onTaskDurationCommit();
+        }
+      }
+      isPanning = false;
     });
 
     // Zoom with Ctrl + Wheel

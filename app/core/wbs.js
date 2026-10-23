@@ -98,6 +98,7 @@ export const WbsUtils = {
     // Flatten back into display list in order of depth-first traversal
     const flatList = [];
     function flatten(node) {
+      node.external_number = node.wbs;
       flatList.push(node);
       node.children.forEach(c => flatten(c));
     }
