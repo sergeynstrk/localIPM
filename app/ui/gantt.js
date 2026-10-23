@@ -11,8 +11,8 @@ export class GanttChart {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.options = {
-      rowHeight: 36,
-      headerHeight: 52,
+      rowHeight: 40,
+      headerHeight: 48,
       scale: 'day', // 'day' | 'week' | 'month' | 'quarter'
       dayWidth: 32, // pixels per day in 'day' scale
       showDependencies: true,
@@ -272,51 +272,76 @@ export class GanttChart {
         ctx.fill();
         ctx.stroke();
 
+        // Draw milestone label with background pill
+        const labelText = `${t.name} (${DateUtils.formatRU(t.start_date)})`;
+        ctx.font = '11px system-ui, -apple-system, sans-serif';
+        const tw = ctx.measureText(labelText).width;
+        const tx = mx + size + 8;
+        const ty = my - 8;
+
+        ctx.fillStyle = 'rgba(11, 15, 25, 0.75)';
+        ctx.fillRect(tx - 3, ty, tw + 6, 16);
         ctx.fillStyle = '#f8fafc';
-        ctx.font = '12px system-ui, sans-serif';
-        ctx.fillText(`${t.name} (${DateUtils.formatRU(t.start_date)})`, mx + size + 6, my + 4);
+        ctx.fillText(labelText, tx, ty + 12);
       } else if (t.is_summary) {
         // Summary bracket bar (FR-9.03)
-        ctx.fillStyle = '#0284c7';
-        ctx.fillRect(startX, barY + 2, barW, 6);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(startX, barY + 3, barW, 5);
 
         // Brackets left and right
         ctx.beginPath();
-        ctx.moveTo(startX, barY + 2);
-        ctx.lineTo(startX, barY + 14);
-        ctx.lineTo(startX + 8, barY + 6);
-        ctx.moveTo(finishX, barY + 2);
-        ctx.lineTo(finishX, barY + 14);
-        ctx.lineTo(finishX - 8, barY + 6);
+        ctx.moveTo(startX, barY + 3);
+        ctx.lineTo(startX, barY + 15);
+        ctx.lineTo(startX + 8, barY + 7);
+        ctx.moveTo(finishX, barY + 3);
+        ctx.lineTo(finishX, barY + 15);
+        ctx.lineTo(finishX - 8, barY + 7);
         ctx.fill();
 
+        // Label with dark background pill
+        const labelText = `${t.name}`;
+        ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
+        const tw = ctx.measureText(labelText).width;
+        const tx = finishX + 10;
+        const ty = barY + 1;
+
+        ctx.fillStyle = 'rgba(11, 15, 25, 0.75)';
+        ctx.fillRect(tx - 3, ty, tw + 6, 16);
         ctx.fillStyle = '#f8fafc';
-        ctx.font = 'bold 12px system-ui, sans-serif';
-        ctx.fillText(`${t.name}`, finishX + 8, barY + 10);
+        ctx.fillText(labelText, tx, ty + 12);
       } else {
         // Standard task bar
         const radius = 4;
-        ctx.fillStyle = isCritical ? '#dc2626' : '#2563eb';
+        ctx.fillStyle = isCritical ? '#dc2626' : '#3b82f6';
         this.roundRect(ctx, startX, barY, barW, barH, radius);
         ctx.fill();
 
         // Progress bar (FR-4.9.07)
         if (this.options.showProgress && t.percent_complete > 0) {
           const progW = barW * (t.percent_complete / 100);
-          ctx.fillStyle = isCritical ? '#991b1b' : '#1d4ed8';
+          ctx.fillStyle = isCritical ? '#b91c1c' : '#2563eb';
           this.roundRect(ctx, startX, barY, progW, barH, radius);
           ctx.fill();
         }
 
-        // Title and duration label
+        // Percentage inside bar if wide enough
         ctx.fillStyle = '#ffffff';
-        ctx.font = '11px system-ui, sans-serif';
-        if (barW > 40) {
+        ctx.font = 'bold 10px system-ui, -apple-system, sans-serif';
+        if (barW > 36) {
           ctx.fillText(`${t.percent_complete || 0}%`, startX + 6, barY + 14);
         }
 
+        // Label outside bar with dark background pill
+        const labelText = `${t.name} (${t.duration_days}д)`;
+        ctx.font = '11px system-ui, -apple-system, sans-serif';
+        const tw = ctx.measureText(labelText).width;
+        const tx = finishX + 10;
+        const ty = barY + 2;
+
+        ctx.fillStyle = 'rgba(11, 15, 25, 0.75)';
+        ctx.fillRect(tx - 3, ty, tw + 6, 16);
         ctx.fillStyle = '#e2e8f0';
-        ctx.fillText(`${t.name} (${t.duration_days}д)`, finishX + 8, barY + 14);
+        ctx.fillText(labelText, tx, ty + 12);
       }
     });
   }

@@ -143,15 +143,16 @@ body {
 }
 
 .project-item {
-  padding: 10px 16px;
+  padding: 8px 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-left: 3px solid transparent;
   transition: all 0.15s ease;
-  margin: 2px 8px;
+  margin: 3px 8px;
   border-radius: var(--radius-sm);
+  gap: 8px;
 }
 
 .project-item:hover {
@@ -160,26 +161,27 @@ body {
 }
 
 .project-item.active {
-  background: rgba(79, 70, 229, 0.18);
+  background: rgba(79, 70, 229, 0.22);
   border-left-color: var(--accent-blue);
   color: #fff;
   font-weight: 500;
 }
 
 .project-item-name {
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 170px;
+  flex: 1;
 }
 
 .project-item-count {
   font-size: 0.72rem;
   color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.08);
   padding: 2px 7px;
   border-radius: 10px;
+  flex-shrink: 0;
 }
 
 .project-delete-btn {
@@ -321,8 +323,8 @@ body {
 }
 
 .table-panel {
-  width: 500px;
-  min-width: 280px;
+  width: 580px;
+  min-width: 320px;
   max-width: 75vw;
   background: var(--bg-primary);
   display: flex;
@@ -366,24 +368,25 @@ body {
 
 /* Task Table Grid */
 .task-table-header {
-  height: 52px;
+  height: 48px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   font-weight: 600;
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   color: var(--text-secondary);
-  letter-spacing: 0.3px;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
+  flex-shrink: 0;
 }
 
-.col-num { width: 44px; text-align: center; }
-.col-name { flex: 1; padding-left: 8px; }
-.col-dur { width: 68px; text-align: center; }
-.col-start { width: 88px; text-align: center; }
-.col-finish { width: 88px; text-align: center; }
-.col-preds { width: 78px; text-align: center; }
+.col-num { width: 44px; text-align: center; flex-shrink: 0; }
+.col-name { flex: 1; min-width: 160px; padding: 0 8px; }
+.col-dur { width: 68px; text-align: center; flex-shrink: 0; }
+.col-start { width: 92px; text-align: center; flex-shrink: 0; }
+.col-finish { width: 92px; text-align: center; flex-shrink: 0; }
+.col-preds { width: 78px; text-align: center; flex-shrink: 0; }
 
 .task-table-body {
   flex: 1;
@@ -392,13 +395,14 @@ body {
 }
 
 .task-row {
-  height: 38px;
+  height: 40px;
   display: flex;
   align-items: center;
   border-bottom: 1px solid rgba(31, 41, 55, 0.7);
   font-size: 0.84rem;
   cursor: pointer;
   transition: background 0.1s ease;
+  box-sizing: border-box;
 }
 
 .task-row:hover {
