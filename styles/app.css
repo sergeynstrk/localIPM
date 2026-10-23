@@ -247,7 +247,9 @@ body {
   align-items: center;
   padding: 0 14px;
   gap: 10px;
-  overflow-x: auto;
+  overflow: visible;
+  position: relative;
+  z-index: 25;
 }
 
 .toolbar-group {
@@ -690,61 +692,57 @@ body {
 }
 
 /* Tooltip Question-Mark Icons */
-.btn-with-tip {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-
 .tip-q {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--text-secondary);
-  font-size: 0.68rem;
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--text-primary);
+  font-size: 0.7rem;
   font-weight: 700;
   cursor: help;
-  margin-left: 5px;
+  margin-left: 6px;
   transition: all 0.15s ease;
   position: relative;
   flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .tip-q:hover {
   background: var(--accent-blue);
   color: #ffffff;
-  box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+  border-color: #818cf8;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.6);
 }
 
-/* Floating Tooltip Bubble on Hover */
+/* Floating Tooltip Bubble on Hover (display below to never be clipped) */
 .tip-q::after {
   content: attr(data-tooltip);
   position: absolute;
-  bottom: calc(100% + 8px);
+  top: calc(100% + 10px);
   left: 50%;
-  transform: translateX(-50%) translateY(4px);
-  background: #0f172a;
-  color: #f1f5f9;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 0.74rem;
+  transform: translateX(-50%) translateY(-4px);
+  background: #090d16;
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.76rem;
   font-weight: normal;
   white-space: normal;
   width: max-content;
-  max-width: 240px;
+  max-width: 260px;
   text-align: left;
-  line-height: 1.35;
-  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.6);
+  line-height: 1.4;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.8), 0 0 1px rgba(255, 255, 255, 0.2);
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
-  transition: opacity 0.18s ease, transform 0.18s ease;
-  z-index: 1000;
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 99999;
 }
 
 .tip-q:hover::after {

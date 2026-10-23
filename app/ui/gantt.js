@@ -354,21 +354,25 @@ export class GanttChart {
         ctx.fillStyle = '#f8fafc';
         ctx.fillText(labelText, tx, ty + 12);
 
-        // Connection Ports for Drag-to-Link
+        // Visual Resize Handle Grip on right edge (Stretch duration)
         if (!t.is_summary) {
-          // Outport on the right
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+          const hX = finishX - 3;
+          ctx.fillRect(hX, barY + 4, 2, barH - 8);
+
+          // Connection Port for Drag-to-Link (shifted outside bar)
           ctx.fillStyle = '#6366f1';
           ctx.strokeStyle = '#ffffff';
           ctx.lineWidth = 1.5;
           ctx.beginPath();
-          ctx.arc(finishX, barY + barH / 2, 4.5, 0, Math.PI * 2);
+          ctx.arc(finishX + 4, barY + barH / 2, 4, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
 
           // Inport on the left
           ctx.fillStyle = '#10b981';
           ctx.beginPath();
-          ctx.arc(startX, barY + barH / 2, 4.5, 0, Math.PI * 2);
+          ctx.arc(startX - 4, barY + barH / 2, 4, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
         }
@@ -483,13 +487,14 @@ export class GanttChart {
       const rowY = headerH + rowIndex * rHeight - this.scrollY;
       const barY = rowY + (rHeight - barH) / 2;
 
-      // Ports are at (finishX, barY + barH / 2) and (barStartX, barY + barH / 2)
-      const distToOutPort = Math.hypot(mouseX - finishX, mouseY - (barY + barH / 2));
-      const distToInPort = Math.hypot(mouseX - barStartX, mouseY - (barY + barH / 2));
+      // Ports are at finishX + 4 and startX - 4
+      const distToOutPort = Math.hypot(mouseX - (finishX + 4), mouseY - (barY + barH / 2));
+      const distToInPort = Math.hypot(mouseX - (startX - 4), mouseY - (barY + barH / 2));
 
-      const isOutPort = distToOutPort <= 8;
-      const isInPort = distToInPort <= 8;
-      const isNearRightEdge = Math.abs(mouseX - finishX) <= 10 && !isOutPort;
+      // Right edge resize handle (within 12px of finishX)
+      const isNearRightEdge = Math.abs(mouseX - finishX) <= 10;
+      const isOutPort = distToOutPort <= 6 && !isNearRightEdge;
+      const isInPort = distToInPort <= 6;
       const isInsideBar = mouseX >= barStartX && mouseX <= finishX;
 
       return {
@@ -498,7 +503,7 @@ export class GanttChart {
         isHandle: isNearRightEdge,
         isOutPort,
         isInPort,
-        portX: isOutPort ? finishX : barStartX,
+        portX: isOutPort ? finishX + 4 : startX - 4,
         portY: barY + barH / 2,
         isInside: isInsideBar,
         mouseX,
