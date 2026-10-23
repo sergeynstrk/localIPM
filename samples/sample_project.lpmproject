@@ -1,0 +1,101 @@
+{
+  "format": "localpm-project-package",
+  "formatVersion": 1,
+  "kind": "transfer",
+  "packageId": "pkg-sample-transfer-1",
+  "createdAt": "2026-10-24T00:00:00Z",
+  "sender": {
+    "name": "Иванов И.И.",
+    "organization": "ООО Проектное Бюро"
+  },
+  "recipient": {
+    "name": "Петров П.П."
+  },
+  "comment": "План внедрения на согласование в соответствии с ТЗ",
+  "project": {
+    "projectId": "proj-sample-demo",
+    "name": "План внедрения (Пример)",
+    "revision": 1,
+    "changedAt": "2026-10-24T00:00:00Z",
+    "author": "Иванов И.И.",
+    "calendar": {
+      "type": "rf",
+      "working_days": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "tasks": [
+      {
+        "id": "t1",
+        "external_number": "1",
+        "name": "Разработка ТЗ",
+        "duration_days": 5,
+        "percent_complete": 100,
+        "level": 0,
+        "start_date": "2026-11-01",
+        "finish_date": "2026-11-06"
+      },
+      {
+        "id": "t2",
+        "external_number": "2",
+        "name": "Согласование ТЗ",
+        "duration_days": 3,
+        "percent_complete": 100,
+        "level": 1,
+        "parent_id": "t1",
+        "start_date": "2026-11-09",
+        "finish_date": "2026-11-11"
+      },
+      {
+        "id": "t3",
+        "external_number": "3",
+        "name": "ТЗ утверждено",
+        "duration_days": 0,
+        "is_milestone": true,
+        "level": 1,
+        "parent_id": "t1",
+        "start_date": "2026-11-12",
+        "finish_date": "2026-11-12"
+      },
+      {
+        "id": "t4",
+        "external_number": "4",
+        "name": "Разработка прототипа",
+        "duration_days": 10,
+        "percent_complete": 40,
+        "level": 0,
+        "start_date": "2026-11-16",
+        "finish_date": "2026-11-27"
+      }
+    ],
+    "dependencies": [
+      {
+        "id": "d1",
+        "pred_id": "t1",
+        "succ_id": "t2",
+        "type": "FS",
+        "lag_workdays": 0
+      },
+      {
+        "id": "d2",
+        "pred_id": "t2",
+        "succ_id": "t3",
+        "type": "FS",
+        "lag_workdays": 0
+      },
+      {
+        "id": "d3",
+        "pred_id": "t3",
+        "succ_id": "t4",
+        "type": "FS",
+        "lag_workdays": 0
+      }
+    ]
+  },
+  "includeHistory": false,
+  "checksum": "ca538590da3ecd02591921a8b15d48a173ad4323b5044731557c6aa0a26d813e"
+}

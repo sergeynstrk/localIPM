@@ -77,8 +77,17 @@ export const DateUtils = {
   ],
 
   // Check if date is working day according to calendar
+  _isWorkingDayCache: new Map(),
+  _addWorkingDaysCache: new Map(),
+
   isWorkingDay(dateISO, calendar) {
     if (!dateISO) return false;
+    const calKey = calendar ? (calendar.type || 'rf') : 'std';
+    const cacheKey = `${dateISO}_${calKey}`;
+    if (this._isWorkingDayCache.has(cacheKey)) {
+      return this._isWorkingDayCache.get(cacheKey);
+    }
+
     const [y, m, d] = dateISO.split('-').map(Number);
     const dt = new Date(y, m - 1, d);
     const dayOfWeek = dt.getDay(); // 0 is Sunday, 1 is Monday ... 6 is Saturday
@@ -86,9 +95,9 @@ export const DateUtils = {
     const workingDays = (calendar && calendar.working_days) || [1, 2, 3, 4, 5];
     const exceptions = (calendar && calendar.exceptions) || [];
 
-    // Check specific exception list (both added holidays or moved workdays)
+    // Check specific exception list
     if (exceptions.includes(dateISO)) {
-      // If it's in exceptions, it's a non-working day
+      this._isWorkingDayCache.set(cacheKey, false);
       return false;
     }
 
@@ -96,36 +105,59 @@ export const DateUtils = {
     if (calendar && calendar.type === 'rf') {
       const mmdd = `${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       if (this.RF_DEFAULT_HOLIDAYS.includes(mmdd)) {
+        this._isWorkingDayCache.set(cacheKey, false);
         return false;
       }
     }
 
-    return workingDays.includes(dayOfWeek);
+    const res = workingDays.includes(dayOfWeek);
+    this._isWorkingDayCache.set(cacheKey, res);
+    return res;
   },
+
+  _ensureWorkingDayCache: new Map(),
+  _addCalendarDaysCache: new Map(),
 
   // Next working day on or after dateISO
   ensureWorkingDay(dateISO, calendar, forward = true) {
+    const calKey = calendar ? (calendar.type || 'rf') : 'std';
+    const cacheKey = `${dateISO}_${forward}_${calKey}`;
+    if (this._ensureWorkingDayCache.has(cacheKey)) {
+      return this._ensureWorkingDayCache.get(cacheKey);
+    }
     let cur = dateISO;
     while (!this.isWorkingDay(cur, calendar)) {
       cur = this.addCalendarDays(cur, forward ? 1 : -1);
     }
+    this._ensureWorkingDayCache.set(cacheKey, cur);
     return cur;
   },
 
   // Add calendar days to dateISO
   addCalendarDays(dateISO, days) {
+    if (days === 0) return dateISO;
+    const cacheKey = `${dateISO}_${days}`;
+    if (this._addCalendarDaysCache.has(cacheKey)) {
+      return this._addCalendarDaysCache.get(cacheKey);
+    }
     const [y, m, d] = dateISO.split('-').map(Number);
     const dt = new Date(y, m - 1, d + days);
-    return this.formatISO(dt);
+    const res = this.formatISO(dt);
+    this._addCalendarDaysCache.set(cacheKey, res);
+    return res;
   },
 
   // Add working days (duration) to dateISO
-  // Rules (4.14.1): Finish = Start + (Duration - 1) working days for Duration > 0.
-  // For milestone (duration 0): Finish = Start
   addWorkingDays(startISO, durationDays, calendar) {
     if (durationDays <= 0) return startISO;
+    const calKey = calendar ? (calendar.type || 'rf') : 'std';
+    const cacheKey = `${startISO}_${durationDays}_${calKey}`;
+    if (this._addWorkingDaysCache.has(cacheKey)) {
+      return this._addWorkingDaysCache.get(cacheKey);
+    }
+
     let cur = this.ensureWorkingDay(startISO, calendar, true);
-    let remaining = durationDays - 1; // if 1 day duration: same day if working
+    let remaining = durationDays - 1;
 
     while (remaining > 0) {
       cur = this.addCalendarDays(cur, 1);
@@ -133,12 +165,22 @@ export const DateUtils = {
         remaining--;
       }
     }
+
+    this._addWorkingDaysCache.set(cacheKey, cur);
     return cur;
   },
+
+  _addLagWorkingDaysCache: new Map(),
 
   // Shift by lag in working days (can be positive, negative, or 0)
   addLagWorkingDays(dateISO, lagDays, calendar) {
     if (!lagDays || lagDays === 0) return dateISO;
+    const calKey = calendar ? (calendar.type || 'rf') : 'std';
+    const cacheKey = `${dateISO}_${lagDays}_${calKey}`;
+    if (this._addLagWorkingDaysCache.has(cacheKey)) {
+      return this._addLagWorkingDaysCache.get(cacheKey);
+    }
+
     let cur = dateISO;
     let remaining = Math.abs(lagDays);
     const step = lagDays > 0 ? 1 : -1;
@@ -149,6 +191,8 @@ export const DateUtils = {
         remaining--;
       }
     }
+
+    this._addLagWorkingDaysCache.set(cacheKey, cur);
     return cur;
   },
 

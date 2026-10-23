@@ -100,8 +100,12 @@ export const CpmEngine = {
     }
 
     // In case of disconnected or items missing from topoOrder
+    const topoSet = new Set(topoOrder);
     tasks.forEach(t => {
-      if (!topoOrder.includes(t.id)) topoOrder.push(t.id);
+      if (!topoSet.has(t.id)) {
+        topoOrder.push(t.id);
+        topoSet.add(t.id);
+      }
     });
 
     // 1. FORWARD PASS (Early Start, Early Finish)
@@ -230,9 +234,14 @@ export const CpmEngine = {
       }
 
       // Total float in working days
-      const floatDays = DateUtils.diffWorkingDays(t.early_start, t.late_start, calendar) - 1;
-      t.total_float = Math.max(0, isNaN(floatDays) ? 0 : floatDays);
-      t.is_critical = t.total_float <= 0;
+      if (t.early_start === t.late_start) {
+        t.total_float = 0;
+        t.is_critical = true;
+      } else {
+        const floatDays = DateUtils.diffWorkingDays(t.early_start, t.late_start, calendar) - 1;
+        t.total_float = Math.max(0, isNaN(floatDays) ? 0 : floatDays);
+        t.is_critical = t.total_float <= 0;
+      }
     }
 
     // 3. Roll up summary tasks using WBS
