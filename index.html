@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LocalPM — Локальный планировщик проектов</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./styles/app.css">
+  <link rel="stylesheet" href="./styles/print.css">
+  <script src="./vendor/xlsx.full.min.js"></script>
+</head>
+<body>
+  <!-- Print Header for PDF (FR-16) -->
+  <div class="print-header">
+    <h1 id="print-project-title">План проекта</h1>
+    <div id="print-project-meta" style="font-size: 9pt; color: #475569; margin-top: 4px;"></div>
+  </div>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="logo-area">
+      <button class="btn-icon" id="btn-toggle-sidebar" title="Свернуть/развернуть панель проектов" aria-label="Переключить боковую панель">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      </button>
+      <span>LocalPM</span>
+      <span class="logo-badge">PWA v2.0</span>
+      <span id="current-project-badge" style="font-size: 0.85rem; font-weight: normal; color: #94a3b8; margin-left: 8px;"></span>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-sm" id="btn-export-workspace" title="Экспорт рабочего пространства (все проекты)">Экспорт бэкапа</button>
+      <button class="btn btn-sm" id="btn-import-workspace" title="Импорт рабочего пространства">Импорт бэкапа</button>
+      <input type="file" id="input-import-workspace" accept=".json" style="display: none;">
+      <button class="btn btn-sm btn-primary" id="btn-new-project">+ Новый проект</button>
+    </div>
+  </header>
+
+  <!-- App Body Layout -->
+  <div class="app-container">
+    <!-- Sidebar Projects Registry -->
+    <aside class="sidebar">
+      <div class="sidebar-section-title">Мои проекты</div>
+      <ul class="project-list" id="project-list-el">
+        <!-- Rendered by JS -->
+      </ul>
+      <div style="padding: 12px 16px; border-top: 1px solid var(--border-color);">
+        <button class="btn btn-sm" style="width: 100%; justify-content: center;" id="btn-import-peer-package">
+          📥 Импорт от коллеги (*.lpmproject)
+        </button>
+        <input type="file" id="input-peer-package" accept=".lpmproject,.json" style="display: none;">
+      </div>
+    </aside>
+
+    <!-- Main Viewport -->
+    <main class="main-viewport">
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="toolbar-group">
+          <button class="btn btn-sm btn-primary" id="btn-add-task">+ Задача</button>
+          <button class="btn btn-sm" id="btn-add-milestone">◆ Веха</button>
+          <button class="btn btn-sm" id="btn-indent" title="Сделать подзадачей (WBS)">➔ Уровень</button>
+          <button class="btn btn-sm" id="btn-outdent" title="Поднять уровень (WBS)">⬅ Назад</button>
+          <button class="btn btn-sm btn-danger" id="btn-delete-task" title="Удалить выбранную задачу">🗑</button>
+        </div>
+
+        <div class="toolbar-group">
+          <button class="btn btn-sm" id="btn-import-excel" title="Импорт XLSX или вставка из буфера">📊 Импорт Excel / TSV</button>
+          <input type="file" id="input-excel-file" accept=".xlsx,.csv" style="display: none;">
+          <button class="btn btn-sm" id="btn-export-excel" title="Экспорт проекта в XLSX">Выгрузить Excel</button>
+          <button class="btn btn-sm" id="btn-export-pdf" title="Печать плана в PDF через системный диалог">Печать PDF</button>
+        </div>
+
+        <div class="toolbar-group">
+          <button class="btn btn-sm" id="btn-transfer-peer" title="Сформировать файл передачи коллеге">📤 Передать проект</button>
+          <button class="btn btn-sm" id="btn-return-peer" title="Вернуть изменения автору">🔄 Вернуть изменения</button>
+        </div>
+
+        <div class="toolbar-group" style="border-right: none;">
+          <span style="font-size: 0.75rem; color: #94a3b8;">Масштаб:</span>
+          <select id="select-scale" style="background: var(--bg-tertiary); color: #fff; border: 1px solid var(--border-color); padding: 3px 6px; border-radius: 4px; font-size: 0.75rem;">
+            <option value="day">День</option>
+            <option value="week">Неделя</option>
+            <option value="month">Месяц</option>
+            <option value="quarter">Квартал</option>
+          </select>
+          <button class="btn btn-sm" id="btn-export-png" title="Скачать диаграмму Ганта как PNG">PNG</button>
+        </div>
+      </div>
+
+      <!-- Split View: Left Table, Right Gantt -->
+      <div class="split-view">
+        <div class="table-panel">
+          <div class="task-table-header">
+            <div class="col-num">№</div>
+            <div class="col-name">Задача</div>
+            <div class="col-dur">Длит.</div>
+            <div class="col-start">Начало</div>
+            <div class="col-finish">Конец</div>
+            <div class="col-preds">Связи</div>
+          </div>
+          <div class="task-table-body" id="task-table-body-el">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <div class="split-resizer" id="split-resizer" title="Потяните для изменения ширины таблицы"></div>
+
+        <div class="gantt-panel" id="gantt-container">
+          <canvas id="gantt-canvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Status Bar -->
+      <footer class="status-bar">
+        <div>
+          <span class="status-indicator" id="storage-status-dot"></span>
+          <span id="storage-status-text">Локальное хранилище активно</span>
+        </div>
+        <div id="plan-metrics" style="display: flex; gap: 16px;">
+          <span>Задач: <b id="metric-tasks-count">0</b></span>
+          <span>Критический путь: <b id="metric-critical-count" style="color: #ef4444;">0</b></span>
+          <span>Окончание: <b id="metric-finish-date">—</b></span>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Print Footer for PDF -->
+  <div class="print-footer">
+    Подготовлено в LocalPM (PWA v2.0) · Локальное планирование проектов
+  </div>
+
+  <!-- Modal: Create / Edit Project -->
+  <div class="modal-overlay" id="modal-project">
+    <div class="modal-window">
+      <div class="modal-header">
+        <span id="modal-project-title">Новый проект</span>
+        <button class="btn btn-sm" onclick="app.closeModal('modal-project')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Название проекта *</label>
+          <input type="text" id="project-form-name" placeholder="Например, Модернизация ИТ-инфраструктуры">
+        </div>
+        <div class="form-group">
+          <label>Дата начала проекта</label>
+          <input type="date" id="project-form-start">
+        </div>
+        <div class="form-group">
+          <label>Рабочий календарь</label>
+          <select id="project-form-calendar">
+            <option value="rf">Пятидневка с праздниками РФ</option>
+            <option value="standard">Стандартная пятидневка (Пн-Пт)</option>
+            <option value="all_days">Все 7 дней в неделю</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Описание / Цели</label>
+          <textarea id="project-form-desc" rows="3" placeholder="Краткое описание проекта..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="app.closeModal('modal-project')">Отмена</button>
+        <button class="btn btn-primary" id="btn-save-project">Создать проект</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Import Excel / TSV (FR-5.04) -->
+  <div class="modal-overlay" id="modal-import">
+    <div class="modal-window" style="width: 720px;">
+      <div class="modal-header">
+        <span>Мастер импорта задач из Excel / TSV</span>
+        <button class="btn btn-sm" onclick="app.closeModal('modal-import')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-primary btn-sm" id="btn-import-pick-file">Выбрать файл .xlsx / .csv</button>
+          <button class="btn btn-sm" id="btn-paste-clipboard">Вставить из буфера обмена (Ctrl+V)</button>
+        </div>
+        <div class="form-group" style="margin-top: 10px;">
+          <label>Вставка текстовых данных (TSV / разделители табуляции):</label>
+          <textarea id="import-tsv-input" rows="5" placeholder="Вставьте скопированные строки из Excel сюда..."></textarea>
+        </div>
+        <div id="import-preview-area" style="font-size: 0.8rem; max-height: 160px; overflow: auto; border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; display: none;">
+          <!-- Preview table -->
+        </div>
+        <div class="form-group">
+          <label>Режим импорта:</label>
+          <select id="import-mode-select">
+            <option value="append">Добавить к текущему плану проекта</option>
+            <option value="replace">Полностью заменить существующий план</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="app.closeModal('modal-import')">Отмена</button>
+        <button class="btn btn-primary" id="btn-execute-import">Выполнить импорт</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Peer Transfer Package (FR-17) -->
+  <div class="modal-overlay" id="modal-transfer">
+    <div class="modal-window">
+      <div class="modal-header">
+        <span id="modal-transfer-title">Передача проекта коллеге</span>
+        <button class="btn btn-sm" onclick="app.closeModal('modal-transfer')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.82rem; color: #94a3b8;">
+          Формируется переносимый пакет <code>*.lpmproject</code> с контрольной суммой SHA-256. Получатель сможет импортировать его в своё рабочее пространство без сервера.
+        </p>
+        <div class="form-group">
+          <label>Ваше имя (отправитель)</label>
+          <input type="text" id="transfer-sender-name" value="Руководитель проекта">
+        </div>
+        <div class="form-group">
+          <label>Кому передаётся (имя коллеги, необязательно)</label>
+          <input type="text" id="transfer-recipient-name" placeholder="Например, Иванов И.И.">
+        </div>
+        <div class="form-group">
+          <label>Комментарий к передаче</label>
+          <textarea id="transfer-comment" rows="3" placeholder="План на согласование..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="app.closeModal('modal-transfer')">Отмена</button>
+        <button class="btn btn-primary" id="btn-do-transfer">Скачать пакет *.lpmproject</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Version Diff on Return (FR-17.09) -->
+  <div class="modal-overlay" id="modal-diff">
+    <div class="modal-window" style="width: 680px;">
+      <div class="modal-header">
+        <span>Сравнение изменений перед принятием возврата</span>
+        <button class="btn btn-sm" onclick="app.closeModal('modal-diff')">✕</button>
+      </div>
+      <div class="modal-body" id="modal-diff-content">
+        <!-- Diff list rendered by JS -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="btn-reject-diff">Отклонить изменения</button>
+        <button class="btn btn-primary" id="btn-accept-diff">Принять изменения в проект</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Bootstrap JS -->
+  <script type="module" src="./app/app.js"></script>
+</body>
+</html>

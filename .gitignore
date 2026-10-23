@@ -1,0 +1,9 @@
+# OS files
+.DS_Store
+Thumbs.db
+*.Zone.Identifier
+
+# Logs & temp
+*.log
+scratch/
+.system_generated/

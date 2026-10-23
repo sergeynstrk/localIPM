@@ -1,0 +1,90 @@
+/* LocalPM Print Stylesheet for PDF (FR-16) */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 12mm 10mm 15mm 10mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 10pt;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .app-header,
+  .sidebar,
+  .toolbar,
+  .status-bar,
+  .modal-overlay,
+  button,
+  .btn {
+    display: none !important;
+  }
+
+  .app-container,
+  .main-viewport,
+  .split-view {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .table-panel {
+    width: 100% !important;
+    border-right: none !important;
+    page-break-after: always;
+  }
+
+  .task-table-header {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    border-bottom: 2px solid #000000 !important;
+  }
+
+  .task-row {
+    border-bottom: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+  }
+
+  .task-row.critical {
+    border-left: 4px solid #dc2626 !important;
+    font-weight: 600;
+  }
+
+  .gantt-panel {
+    width: 100% !important;
+    height: auto !important;
+    page-break-before: always;
+  }
+
+  #gantt-canvas {
+    width: 100% !important;
+    max-height: 180mm !important;
+  }
+
+  /* Printable Header and Footer */
+  .print-header {
+    display: block !important;
+    margin-bottom: 8mm;
+    border-bottom: 1px solid #94a3b8;
+    padding-bottom: 4mm;
+  }
+
+  .print-footer {
+    display: block !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: right;
+    font-size: 8pt;
+    color: #64748b;
+  }
+}
+
+.print-header, .print-footer {
+  display: none;
+}

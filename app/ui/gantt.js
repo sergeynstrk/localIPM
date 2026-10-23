@@ -1,0 +1,431 @@
+/**
+ * LocalPM - Canvas 2D Interactive Gantt Chart Engine
+ * Высокопроизводительная отрисовка на Canvas 2D с виртуализацией строк,
+ * шкалой (день/неделя/месяц/квартал), связями, вехами, критическим путем и линией "сегодня"
+ */
+
+import { DateUtils } from '../core/dates.js';
+
+export class GanttChart {
+  constructor(canvas, options = {}) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.options = {
+      rowHeight: 36,
+      headerHeight: 52,
+      scale: 'day', // 'day' | 'week' | 'month' | 'quarter'
+      dayWidth: 32, // pixels per day in 'day' scale
+      showDependencies: true,
+      showCriticalPath: true,
+      showTodayLine: true,
+      showProgress: true,
+      ...options
+    };
+
+    this.tasks = [];
+    this.dependencies = [];
+    this.calendar = null;
+    this.minDate = null;
+    this.maxDate = null;
+
+    this.scrollX = 0;
+    this.scrollY = 0;
+
+    this.selectedTaskId = null;
+    this.hoveredTaskId = null;
+
+    this.initEvents();
+  }
+
+  setData({ tasks = [], dependencies = [], calendar = null, startDate = null }) {
+    this.tasks = tasks;
+    this.dependencies = dependencies;
+    this.calendar = calendar;
+
+    // Determine min and max dates
+    let minD = startDate || DateUtils.formatISO(new Date());
+    let maxD = minD;
+
+    tasks.forEach(t => {
+      if (t.start_date && t.start_date < minD) minD = t.start_date;
+      if (t.finish_date && t.finish_date > maxD) maxD = t.finish_date;
+    });
+
+    // Add padding around min & max dates (7 days before, 30 days after)
+    this.minDate = DateUtils.addCalendarDays(minD, -7);
+    this.maxDate = DateUtils.addCalendarDays(maxD, 45);
+
+    this.totalDays = DateUtils.diffWorkingDays(this.minDate, this.maxDate, { working_days: [0,1,2,3,4,5,6] }) || 60;
+    this.render();
+  }
+
+  setScale(scale) {
+    this.options.scale = scale;
+    if (scale === 'day') this.options.dayWidth = 32;
+    else if (scale === 'week') this.options.dayWidth = 12;
+    else if (scale === 'month') this.options.dayWidth = 4;
+    else if (scale === 'quarter') this.options.dayWidth = 1.8;
+    this.render();
+  }
+
+  // Convert date to X coordinate
+  dateToX(dateISO) {
+    if (!dateISO || !this.minDate) return 0;
+    const [y1, m1, d1] = this.minDate.split('-').map(Number);
+    const [y2, m2, d2] = dateISO.split('-').map(Number);
+    const dt1 = new Date(y1, m1 - 1, d1);
+    const dt2 = new Date(y2, m2 - 1, d2);
+    const diffDays = Math.round((dt2 - dt1) / (1000 * 60 * 60 * 24));
+    return diffDays * this.options.dayWidth;
+  }
+
+  // Convert X coordinate to date
+  xToDate(x) {
+    const days = Math.floor(x / this.options.dayWidth);
+    return DateUtils.addCalendarDays(this.minDate, days);
+  }
+
+  render() {
+    if (!this.canvas || !this.ctx) return;
+    const { width, height } = this.canvas;
+    const ctx = this.ctx;
+
+    ctx.clearRect(0, 0, width, height);
+
+    ctx.save();
+    // 1. Draw timeline header background
+    this.renderTimelineHeader();
+
+    // 2. Draw vertical grid & non-working days
+    this.renderGrid();
+
+    // 3. Draw today line
+    if (this.options.showTodayLine) {
+      this.renderTodayLine();
+    }
+
+    // 4. Draw dependencies lines
+    if (this.options.showDependencies) {
+      this.renderDependencies();
+    }
+
+    // 5. Draw task bars & milestones
+    this.renderTasks();
+
+    ctx.restore();
+  }
+
+  renderTimelineHeader() {
+    const ctx = this.ctx;
+    const h = this.options.headerHeight;
+    const w = this.canvas.width;
+
+    ctx.fillStyle = '#111827';
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#1f2937';
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    ctx.lineTo(w, h);
+    ctx.moveTo(0, h / 2);
+    ctx.lineTo(w, h / 2);
+    ctx.stroke();
+
+    // Top & bottom scales
+    const startX = this.scrollX;
+    const endX = startX + w;
+    const startDay = Math.max(0, Math.floor(startX / this.options.dayWidth));
+    const endDay = Math.ceil(endX / this.options.dayWidth);
+
+    ctx.font = '12px system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = '#9ca3af';
+
+    const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
+    let currentMonth = -1;
+    let monthStartX = 0;
+
+    for (let i = startDay; i <= endDay; i++) {
+      const curDate = DateUtils.addCalendarDays(this.minDate, i);
+      const [y, m, d] = curDate.split('-').map(Number);
+      const x = i * this.options.dayWidth - this.scrollX;
+
+      // Month block
+      if (m !== currentMonth) {
+        if (currentMonth !== -1) {
+          ctx.fillStyle = '#f9fafb';
+          ctx.fillText(`${monthNames[currentMonth - 1]} ${y}`, monthStartX + 10, h / 2 - 8);
+        }
+        currentMonth = m;
+        monthStartX = x;
+        ctx.strokeStyle = '#374151';
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h / 2);
+        ctx.stroke();
+      }
+
+      // Day / Week tick
+      if (this.options.scale === 'day') {
+        const dt = new Date(y, m - 1, d);
+        const dayOfWeek = dt.getDay();
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+        ctx.fillStyle = isWeekend ? '#ef4444' : '#cbd5e1';
+        ctx.fillText(String(d), x + 10, h - 8);
+
+        ctx.strokeStyle = '#1f2937';
+        ctx.beginPath();
+        ctx.moveTo(x, h / 2);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+    }
+  }
+
+  renderGrid() {
+    const ctx = this.ctx;
+    const h = this.canvas.height;
+    const w = this.canvas.width;
+    const startX = this.scrollX;
+    const endX = startX + w;
+    const startDay = Math.max(0, Math.floor(startX / this.options.dayWidth));
+    const endDay = Math.ceil(endX / this.options.dayWidth);
+
+    for (let i = startDay; i <= endDay; i++) {
+      const curDate = DateUtils.addCalendarDays(this.minDate, i);
+      const isWork = DateUtils.isWorkingDay(curDate, this.calendar);
+      const x = i * this.options.dayWidth - this.scrollX;
+
+      if (!isWork && this.options.scale === 'day') {
+        ctx.fillStyle = 'rgba(31, 41, 55, 0.45)';
+        ctx.fillRect(x, this.options.headerHeight, this.options.dayWidth, h - this.options.headerHeight);
+      }
+
+      ctx.strokeStyle = 'rgba(31, 41, 55, 0.5)';
+      ctx.beginPath();
+      ctx.moveTo(x, this.options.headerHeight);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+    }
+  }
+
+  renderTodayLine() {
+    const todayISO = DateUtils.formatISO(new Date());
+    const x = this.dateToX(todayISO) - this.scrollX;
+    if (x >= 0 && x <= this.canvas.width) {
+      const ctx = this.ctx;
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(x, this.options.headerHeight);
+      ctx.lineTo(x, this.canvas.height);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.lineWidth = 1;
+
+      ctx.fillStyle = '#3b82f6';
+      ctx.beginPath();
+      ctx.arc(x, this.options.headerHeight + 4, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  renderTasks() {
+    const ctx = this.ctx;
+    const rHeight = this.options.rowHeight;
+    const headerH = this.options.headerHeight;
+
+    this.tasks.forEach((t, idx) => {
+      const y = headerH + idx * rHeight - this.scrollY;
+      if (y + rHeight < headerH || y > this.canvas.height) return; // virtualize rows outside viewport
+
+      const isSelected = this.selectedTaskId === t.id;
+      if (isSelected) {
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.15)';
+        ctx.fillRect(0, y, this.canvas.width, rHeight);
+      }
+
+      const startX = this.dateToX(t.start_date) - this.scrollX;
+      const finishX = this.dateToX(t.finish_date) + (this.options.scale === 'day' ? this.options.dayWidth : 0) - this.scrollX;
+      const barW = Math.max(4, finishX - startX);
+      const barH = 20;
+      const barY = y + (rHeight - barH) / 2;
+
+      const isCritical = this.options.showCriticalPath && t.is_critical;
+
+      if (t.is_milestone) {
+        // Milestone diamond (FR-8.02)
+        const mx = startX;
+        const my = y + rHeight / 2;
+        const size = 9;
+
+        ctx.fillStyle = isCritical ? '#ef4444' : '#eab308';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(mx, my - size);
+        ctx.lineTo(mx + size, my);
+        ctx.lineTo(mx, my + size);
+        ctx.lineTo(mx - size, my);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = '12px system-ui, sans-serif';
+        ctx.fillText(`${t.name} (${DateUtils.formatRU(t.start_date)})`, mx + size + 6, my + 4);
+      } else if (t.is_summary) {
+        // Summary bracket bar (FR-9.03)
+        ctx.fillStyle = '#0284c7';
+        ctx.fillRect(startX, barY + 2, barW, 6);
+
+        // Brackets left and right
+        ctx.beginPath();
+        ctx.moveTo(startX, barY + 2);
+        ctx.lineTo(startX, barY + 14);
+        ctx.lineTo(startX + 8, barY + 6);
+        ctx.moveTo(finishX, barY + 2);
+        ctx.lineTo(finishX, barY + 14);
+        ctx.lineTo(finishX - 8, barY + 6);
+        ctx.fill();
+
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = 'bold 12px system-ui, sans-serif';
+        ctx.fillText(`${t.name}`, finishX + 8, barY + 10);
+      } else {
+        // Standard task bar
+        const radius = 4;
+        ctx.fillStyle = isCritical ? '#dc2626' : '#2563eb';
+        this.roundRect(ctx, startX, barY, barW, barH, radius);
+        ctx.fill();
+
+        // Progress bar (FR-4.9.07)
+        if (this.options.showProgress && t.percent_complete > 0) {
+          const progW = barW * (t.percent_complete / 100);
+          ctx.fillStyle = isCritical ? '#991b1b' : '#1d4ed8';
+          this.roundRect(ctx, startX, barY, progW, barH, radius);
+          ctx.fill();
+        }
+
+        // Title and duration label
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '11px system-ui, sans-serif';
+        if (barW > 40) {
+          ctx.fillText(`${t.percent_complete || 0}%`, startX + 6, barY + 14);
+        }
+
+        ctx.fillStyle = '#e2e8f0';
+        ctx.fillText(`${t.name} (${t.duration_days}д)`, finishX + 8, barY + 14);
+      }
+    });
+  }
+
+  renderDependencies() {
+    const ctx = this.ctx;
+    const rHeight = this.options.rowHeight;
+    const headerH = this.options.headerHeight;
+    const taskMap = new Map();
+    this.tasks.forEach((t, idx) => taskMap.set(t.id, { ...t, index: idx }));
+
+    this.dependencies.forEach(d => {
+      const pred = taskMap.get(d.pred_id);
+      const succ = taskMap.get(d.succ_id);
+      if (!pred || !succ) return;
+
+      const predY = headerH + pred.index * rHeight + rHeight / 2 - this.scrollY;
+      const succY = headerH + succ.index * rHeight + rHeight / 2 - this.scrollY;
+
+      const predEndX = this.dateToX(pred.finish_date) + (this.options.scale === 'day' ? this.options.dayWidth : 0) - this.scrollX;
+      const succStartX = this.dateToX(succ.start_date) - this.scrollX;
+
+      const isCritical = this.options.showCriticalPath && pred.is_critical && succ.is_critical;
+      ctx.strokeStyle = isCritical ? '#ef4444' : '#64748b';
+      ctx.fillStyle = isCritical ? '#ef4444' : '#64748b';
+      ctx.lineWidth = isCritical ? 2 : 1.5;
+
+      // Orthogonal arrow routing
+      ctx.beginPath();
+      ctx.moveTo(predEndX, predY);
+      const midX = predEndX + 12;
+      ctx.lineTo(midX, predY);
+      ctx.lineTo(midX, succY);
+      ctx.lineTo(succStartX, succY);
+      ctx.stroke();
+
+      // Arrow head
+      ctx.beginPath();
+      ctx.moveTo(succStartX, succY);
+      ctx.lineTo(succStartX - 6, succY - 4);
+      ctx.lineTo(succStartX - 6, succY + 4);
+      ctx.closePath();
+      ctx.fill();
+    });
+  }
+
+  roundRect(ctx, x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+  }
+
+  initEvents() {
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+
+    this.canvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      startX = e.clientX;
+      startY = e.clientY;
+
+      this.scrollX = Math.max(0, this.scrollX - dx);
+      this.scrollY = Math.max(0, this.scrollY - dy);
+      if (this.onScrollY) this.onScrollY(this.scrollY);
+      this.render();
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    // Zoom with Ctrl + Wheel
+    this.canvas.addEventListener('wheel', (e) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        if (e.deltaY < 0) {
+          this.options.dayWidth = Math.min(80, this.options.dayWidth * 1.15);
+        } else {
+          this.options.dayWidth = Math.max(2, this.options.dayWidth * 0.85);
+        }
+        this.render();
+      } else {
+        this.scrollY = Math.max(0, this.scrollY + e.deltaY);
+        this.scrollX = Math.max(0, this.scrollX + e.deltaX);
+        if (this.onScrollY) this.onScrollY(this.scrollY);
+        this.render();
+      }
+    }, { passive: false });
+  }
+
+  // Export Gantt chart to PNG data URL (FR-9.12)
+  exportToPNG() {
+    return this.canvas.toDataURL('image/png');
+  }
+}
