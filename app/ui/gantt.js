@@ -310,37 +310,48 @@ export class GanttChart {
         ctx.fillStyle = '#f8fafc';
         ctx.fillText(labelText, tx, ty + 12);
       } else {
-        // Standard task bar
-        const radius = 4;
-        ctx.fillStyle = isCritical ? '#dc2626' : '#3b82f6';
+        // Standard task bar (Modern gradient & subtle border)
+        const radius = 5;
+        if (isCritical) {
+          const grad = ctx.createLinearGradient(startX, barY, startX, barY + barH);
+          grad.addColorStop(0, '#f43f5e');
+          grad.addColorStop(1, '#e11d48');
+          ctx.fillStyle = grad;
+        } else {
+          const grad = ctx.createLinearGradient(startX, barY, startX, barY + barH);
+          grad.addColorStop(0, '#6366f1');
+          grad.addColorStop(1, '#4f46e5');
+          ctx.fillStyle = grad;
+        }
         this.roundRect(ctx, startX, barY, barW, barH, radius);
         ctx.fill();
 
         // Progress bar (FR-4.9.07)
         if (this.options.showProgress && t.percent_complete > 0) {
           const progW = barW * (t.percent_complete / 100);
-          ctx.fillStyle = isCritical ? '#b91c1c' : '#2563eb';
+          ctx.fillStyle = isCritical ? '#9f1239' : '#3730a3';
           this.roundRect(ctx, startX, barY, progW, barH, radius);
           ctx.fill();
         }
 
         // Percentage inside bar if wide enough
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 10px system-ui, -apple-system, sans-serif';
+        ctx.font = 'bold 10px "JetBrains Mono", monospace';
         if (barW > 36) {
           ctx.fillText(`${t.percent_complete || 0}%`, startX + 6, barY + 14);
         }
 
         // Label outside bar with dark background pill
         const labelText = `${t.name} (${t.duration_days}д)`;
-        ctx.font = '11px system-ui, -apple-system, sans-serif';
+        ctx.font = '500 11px "Inter", -apple-system, sans-serif';
         const tw = ctx.measureText(labelText).width;
         const tx = finishX + 10;
         const ty = barY + 2;
 
-        ctx.fillStyle = 'rgba(11, 15, 25, 0.75)';
-        ctx.fillRect(tx - 3, ty, tw + 6, 16);
-        ctx.fillStyle = '#e2e8f0';
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+        this.roundRect(ctx, tx - 4, ty, tw + 8, 17, 3);
+        ctx.fill();
+        ctx.fillStyle = '#f8fafc';
         ctx.fillText(labelText, tx, ty + 12);
       }
     });
