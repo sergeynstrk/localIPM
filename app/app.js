@@ -71,6 +71,23 @@ class AppController {
       this.recalculateSchedule();
     };
 
+    // Drag-to-Link: create dependency on canvas connect
+    this.gantt.onLinkCreated = (predId, succId, type = 'FS', lag = 0) => {
+      // Check if dependency already exists
+      const exists = this.dependencies.some(d => d.pred_id === predId && d.succ_id === succId);
+      if (exists) return;
+
+      this.dependencies.push({
+        id: `dep-${predId}-${succId}`,
+        pred_id: predId,
+        succ_id: succId,
+        type: type,
+        lag_workdays: lag
+      });
+
+      this.recalculateSchedule();
+    };
+
     // 3. Service Worker registration (disabled on localhost for immediate hot-reloads)
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http') && !window.location.hostname.includes('localhost') && window.location.hostname !== '127.0.0.1') {
       try {
@@ -148,16 +165,83 @@ class AppController {
       searchInput.addEventListener('input', (e) => this.handleSearchTasks(e.target.value));
     }
 
+    // Tab switching helper for Import / Export Hubs
+    document.querySelectorAll('.modal-tab-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const targetId = btn.dataset.tabTarget;
+        const modal = btn.closest('.modal-window');
+        if (!modal || !targetId) return;
+
+        modal.querySelectorAll('.modal-tab-btn').forEach(b => b.classList.remove('active'));
+        modal.querySelectorAll('.modal-tab-content').forEach(c => c.classList.remove('active'));
+
+        btn.classList.add('active');
+        const targetContent = modal.querySelector(`#${targetId}`);
+        if (targetContent) targetContent.classList.add('active');
+      });
+    });
+
+    // Unified Import / Export Hub openers
+    const btnOpenImport = document.getElementById('btn-open-import-hub');
+    if (btnOpenImport) {
+      btnOpenImport.addEventListener('click', () => this.openModal('modal-import-hub'));
+    }
+
+    const btnOpenExport = document.getElementById('btn-open-export-hub');
+    if (btnOpenExport) {
+      btnOpenExport.addEventListener('click', () => this.openModal('modal-export-hub'));
+    }
+
+    const btnPeerTab = document.getElementById('btn-import-peer-tab-btn');
+    if (btnPeerTab) {
+      btnPeerTab.addEventListener('click', () => document.getElementById('input-peer-package').click());
+    }
+
+    // Health Audit Modal
+    const btnOpenHealth = document.getElementById('btn-open-health');
+    if (btnOpenHealth) {
+      btnOpenHealth.addEventListener('click', () => this.handleOpenHealthAudit());
+    }
+
+    // What-If Sandbox Mode
+    this.isSandbox = false;
+    this.sandboxBackup = null;
+    const btnSandbox = document.getElementById('btn-toggle-sandbox');
+    if (btnSandbox) {
+      btnSandbox.addEventListener('click', () => this.toggleSandboxMode());
+    }
+
+    const btnSandboxApply = document.getElementById('btn-sandbox-apply');
+    if (btnSandboxApply) {
+      btnSandboxApply.addEventListener('click', () => this.applySandbox());
+    }
+
+    const btnSandboxReset = document.getElementById('btn-sandbox-reset');
+    if (btnSandboxReset) {
+      btnSandboxReset.addEventListener('click', () => this.resetSandbox());
+    }
+
+    // Resource Heatmap Panel Toggle
+    const btnToggleRes = document.getElementById('btn-toggle-resources');
+    const resPanel = document.getElementById('resource-panel');
+    const btnCloseRes = document.getElementById('btn-close-resources');
+
+    if (btnToggleRes && resPanel) {
+      btnToggleRes.addEventListener('click', () => {
+        resPanel.classList.toggle('open');
+        this.renderResourceHeatmap();
+      });
+    }
+    if (btnCloseRes && resPanel) {
+      btnCloseRes.addEventListener('click', () => resPanel.classList.remove('open'));
+    }
+
     // Scale
     document.getElementById('select-scale').addEventListener('change', (e) => {
       this.gantt.setScale(e.target.value);
     });
 
-    // Excel Import / Export
-    document.getElementById('btn-import-excel').addEventListener('click', () => {
-      this.openModal('modal-import');
-    });
-
+    // Excel Import File Picker
     document.getElementById('btn-import-pick-file').addEventListener('click', () => {
       document.getElementById('input-excel-file').click();
     });
@@ -204,18 +288,20 @@ class AppController {
     document.getElementById('btn-export-png').addEventListener('click', () => this.handleExportPNG());
 
     // Transfer Package (FR-17)
-    document.getElementById('btn-transfer-peer').addEventListener('click', () => {
-      this.openModal('modal-transfer');
-    });
-    document.getElementById('btn-do-transfer').addEventListener('click', () => this.handleExportPeerPackage('transfer'));
+    const btnDoTransfer = document.getElementById('btn-do-transfer');
+    if (btnDoTransfer) {
+      btnDoTransfer.addEventListener('click', () => this.handleExportPeerPackage('transfer'));
+    }
 
-    document.getElementById('btn-return-peer').addEventListener('click', () => {
-      this.handleExportPeerPackage('return');
-    });
+    const btnReturnPeer = document.getElementById('btn-return-peer');
+    if (btnReturnPeer) {
+      btnReturnPeer.addEventListener('click', () => this.handleExportPeerPackage('return'));
+    }
 
-    document.getElementById('btn-import-peer-package').addEventListener('click', () => {
-      document.getElementById('input-peer-package').click();
-    });
+    const btnImportPeer = document.getElementById('btn-import-peer-package');
+    if (btnImportPeer) {
+      btnImportPeer.addEventListener('click', () => document.getElementById('input-peer-package').click());
+    }
     document.getElementById('input-peer-package').addEventListener('change', (e) => this.handleImportPeerPackage(e));
 
     // Return Diff actions
@@ -450,11 +536,20 @@ class AppController {
     });
 
     this.tasks = cpmResult.tasks;
+    this.latestHealthReport = cpmResult;
 
     // Update metrics
     document.getElementById('metric-tasks-count').innerText = this.tasks.length;
     document.getElementById('metric-critical-count').innerText = cpmResult.criticalPathCount || 0;
     document.getElementById('metric-finish-date').innerText = DateUtils.formatRU(cpmResult.projectFinishDate);
+
+    // Update health badge on toolbar
+    const healthBadge = document.getElementById('toolbar-health-badge');
+    if (healthBadge) {
+      const score = cpmResult.healthScore !== undefined ? cpmResult.healthScore : 100;
+      healthBadge.innerText = `${score}%`;
+      healthBadge.style.background = score >= 90 ? '#10b981' : (score >= 70 ? '#f59e0b' : '#ef4444');
+    }
 
     // Render Table
     this.renderTaskTable();
@@ -478,16 +573,192 @@ class AppController {
       startDate: this.currentProject.start_date
     });
 
-    // Save to DB and update project task count
-    this.currentProject.task_count = this.tasks.length;
-    db.saveProject(this.currentProject);
-    db.saveProjectPlan(this.currentProject.id, this.tasks, this.dependencies);
-
-    // Update active project count in sidebar badge without full reload
-    const activeBadge = document.querySelector('.project-item.active .project-item-count');
-    if (activeBadge) {
-      activeBadge.innerText = this.tasks.length;
+    // Update resources if panel is open
+    const resPanel = document.getElementById('resource-panel');
+    if (resPanel && resPanel.classList.contains('open')) {
+      this.renderResourceHeatmap();
     }
+
+    // Save to DB only if NOT in What-If Sandbox mode
+    if (!this.isSandbox) {
+      this.currentProject.task_count = this.tasks.length;
+      db.saveProject(this.currentProject);
+      db.saveProjectPlan(this.currentProject.id, this.tasks, this.dependencies);
+
+      // Update active project count in sidebar badge without full reload
+      const activeBadge = document.querySelector('.project-item.active .project-item-count');
+      if (activeBadge) {
+        activeBadge.innerText = this.tasks.length;
+      }
+    }
+  }
+
+  // --- What-If Sandbox Mode ---
+  toggleSandboxMode() {
+    this.isSandbox = !this.isSandbox;
+    const banner = document.getElementById('sandbox-banner');
+    const btn = document.getElementById('btn-toggle-sandbox');
+
+    if (this.isSandbox) {
+      // Save deep snapshot of baseline
+      this.sandboxBackup = {
+        tasks: JSON.parse(JSON.stringify(this.tasks)),
+        dependencies: JSON.parse(JSON.stringify(this.dependencies))
+      };
+      if (banner) banner.classList.add('active');
+      if (btn) {
+        btn.style.background = 'linear-gradient(135deg, #d97706, #b45309)';
+        btn.style.color = '#fff';
+      }
+    } else {
+      if (banner) banner.classList.remove('active');
+      if (btn) {
+        btn.style.background = '';
+        btn.style.color = '';
+      }
+    }
+  }
+
+  applySandbox() {
+    if (!this.isSandbox) return;
+    this.isSandbox = false;
+    this.sandboxBackup = null;
+    const banner = document.getElementById('sandbox-banner');
+    const btn = document.getElementById('btn-toggle-sandbox');
+    if (banner) banner.classList.remove('active');
+    if (btn) {
+      btn.style.background = '';
+      btn.style.color = '';
+    }
+    // Now persist scenario changes as new baseline
+    this.recalculateSchedule();
+    alert('Сценарий «Что-если» успешно утвержден и сохранен в основной план проекта!');
+  }
+
+  resetSandbox() {
+    if (!this.isSandbox || !this.sandboxBackup) return;
+    this.tasks = JSON.parse(JSON.stringify(this.sandboxBackup.tasks));
+    this.dependencies = JSON.parse(JSON.stringify(this.sandboxBackup.dependencies));
+    this.isSandbox = false;
+    this.sandboxBackup = null;
+    const banner = document.getElementById('sandbox-banner');
+    const btn = document.getElementById('btn-toggle-sandbox');
+    if (banner) banner.classList.remove('active');
+    if (btn) {
+      btn.style.background = '';
+      btn.style.color = '';
+    }
+    this.recalculateSchedule();
+  }
+
+  // --- Schedule Health Audit Modal ---
+  handleOpenHealthAudit() {
+    const report = this.latestHealthReport || {};
+    const score = report.healthScore !== undefined ? report.healthScore : 100;
+    const issues = report.issues || [];
+
+    const circle = document.getElementById('health-modal-circle');
+    const statusTitle = document.getElementById('health-modal-status');
+    const summary = document.getElementById('health-modal-summary');
+    const listEl = document.getElementById('health-issues-list');
+
+    if (circle) {
+      circle.innerText = `${score}%`;
+      circle.style.borderColor = score >= 90 ? '#10b981' : (score >= 70 ? '#f59e0b' : '#ef4444');
+      circle.style.boxShadow = `0 0 14px ${score >= 90 ? 'rgba(16, 185, 129, 0.4)' : (score >= 70 ? 'rgba(245, 158, 11, 0.4)' : 'rgba(239, 68, 68, 0.4)')}`;
+    }
+
+    if (statusTitle) {
+      statusTitle.innerText = score >= 90 ? '✅ План высокого качества (DCMA-14)' : (score >= 70 ? '⚠️ Умеренное качество: есть риски' : '🚨 Низкое качество расписания');
+    }
+
+    if (summary) {
+      const stats = report.healthStats || {};
+      summary.innerText = `Проанализировано ${stats.totalTasks || this.tasks.length} задач. Висячих концов: ${(stats.missingPredsCount || 0) + (stats.missingSuccsCount || 0)}, длинных задач: ${stats.longTasksCount || 0}, отрицательных лагов: ${stats.negativeLagCount || 0}.`;
+    }
+
+    if (listEl) {
+      listEl.innerHTML = '';
+      if (issues.length === 0) {
+        listEl.innerHTML = '<div style="color: #10b981; font-size: 0.85rem; padding: 12px; background: rgba(16, 185, 129, 0.08); border-radius: 6px;">Замечаний не найдено. План полностью соответствует стандартам управления проектами!</div>';
+      } else {
+        issues.forEach(iss => {
+          const item = document.createElement('div');
+          item.className = `issue-item ${iss.severity || 'info'}`;
+          const icon = iss.severity === 'error' ? '❌' : (iss.severity === 'warning' ? '⚠️' : 'ℹ️');
+          item.innerHTML = `<span>${icon}</span><span style="flex: 1;">${iss.message}</span>`;
+          if (iss.taskId) {
+            item.style.cursor = 'pointer';
+            item.title = 'Нажмите для перехода к задаче';
+            item.addEventListener('click', () => {
+              this.selectedTaskId = iss.taskId;
+              this.closeModal('modal-health');
+              this.gantt.selectedTaskId = iss.taskId;
+              this.gantt.render();
+              const row = document.querySelector(`.task-row[data-task-id="${iss.taskId}"]`);
+              if (row) {
+                document.querySelectorAll('.task-row').forEach(r => r.classList.remove('selected'));
+                row.classList.add('selected');
+                row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            });
+          }
+          listEl.appendChild(item);
+        });
+      }
+    }
+
+    this.openModal('modal-health');
+  }
+
+  // --- Resource Heatmap & Balancing Panel ---
+  renderResourceHeatmap() {
+    const listEl = document.getElementById('resource-list-el');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    // Calculate days allocated per owner
+    const ownerLoad = new Map();
+    this.tasks.forEach(t => {
+      const owner = (t.owner || '').trim();
+      if (!owner || t.is_summary || t.is_milestone) return;
+
+      if (!ownerLoad.has(owner)) {
+        ownerLoad.set(owner, { totalDays: 0, taskCount: 0, maxConcurrent: 1 });
+      }
+      const data = ownerLoad.get(owner);
+      data.totalDays += (t.duration_days || 1);
+      data.taskCount += 1;
+    });
+
+    if (ownerLoad.size === 0) {
+      listEl.innerHTML = '<div style="color: #94a3b8; font-size: 0.8rem; padding: 12px;">Укажите ответственных в карточке задачи (✏️ Изменить) для расчета балансировки ресурсов.</div>';
+      return;
+    }
+
+    // Determine max load for percentage scale
+    let maxLoad = 1;
+    ownerLoad.forEach(v => {
+      if (v.totalDays > maxLoad) maxLoad = v.totalDays;
+    });
+
+    ownerLoad.forEach((data, owner) => {
+      const pct = Math.min(100, Math.round((data.totalDays / maxLoad) * 100));
+      const isOverallocated = data.totalDays > 25 || data.taskCount > 4;
+
+      const row = document.createElement('div');
+      row.className = 'resource-row';
+      row.innerHTML = `
+        <div class="resource-name" title="${owner}">${owner}</div>
+        <div class="resource-bar-track">
+          <div class="resource-bar-fill" style="width: ${pct}%; background: ${isOverallocated ? 'linear-gradient(90deg, #f59e0b, #ef4444)' : 'linear-gradient(90deg, #6366f1, #3b82f6)'};"></div>
+        </div>
+        <div style="font-family: var(--font-mono); font-size: 0.74rem; width: 110px; text-align: right; color: ${isOverallocated ? '#fca5a5' : '#cbd5e1'};">
+          ${data.totalDays} дн. (${data.taskCount} зад.) ${isOverallocated ? '⚠️ Перегруз' : '✓ Ок'}
+        </div>
+      `;
+      listEl.appendChild(row);
+    });
   }
 
   renderTaskTable() {

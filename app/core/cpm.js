@@ -248,11 +248,14 @@ export const CpmEngine = {
     const scheduledList = Array.from(taskMap.values());
     const rolledUpList = WbsUtils.computeWbs(scheduledList, dependencies, calendar, DateUtils);
 
+    const auditResult = ValidationUtils.auditPlan(rolledUpList, dependencies);
     const criticalPathCount = rolledUpList.filter(t => t.is_critical && !t.is_summary).length;
 
     return {
       tasks: rolledUpList,
-      issues,
+      issues: auditResult.issues,
+      healthScore: auditResult.healthScore,
+      healthStats: auditResult.stats,
       criticalPathCount,
       projectStartDate: baseProjectStart,
       projectFinishDate

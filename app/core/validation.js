@@ -139,12 +139,20 @@ export const ValidationUtils = {
     }
 
     // Check individual tasks
+    let hardConstraintsCount = 0;
+    let longTasksCount = 0;
+    let missingPredsCount = 0;
+    let missingSuccsCount = 0;
+    let highFloatCount = 0;
+
     tasks.forEach(t => {
       if (!t.name || !t.name.trim()) {
         issues.push({
           severity: 'error',
           taskId: t.id,
-          message: `Задача #${t.external_number || t.id} не имеет названия`
+          taskName: t.name || `#${t.external_number}`,
+          code: 'NO_NAME',
+          message: `Задача #${t.external_number || t.id} не имеет наименования`
         });
       }
 
@@ -152,7 +160,9 @@ export const ValidationUtils = {
         issues.push({
           severity: 'warning',
           taskId: t.id,
-          message: `Веха #${t.external_number || t.name} имеет длительность ${t.duration_days}д (должно быть 0)`
+          taskName: t.name,
+          code: 'MILESTONE_DURATION',
+          message: `Веха «${t.name}» имеет длительность ${t.duration_days}д (у вех должно быть 0)`
         });
       }
 
@@ -160,24 +170,110 @@ export const ValidationUtils = {
         issues.push({
           severity: 'error',
           taskId: t.id,
-          message: `Задача "${t.name}" имеет дату окончания раньше начала`
+          taskName: t.name,
+          code: 'DATES_INVERTED',
+          message: `Задача «${t.name}»: дата окончания раньше даты начала`
         });
       }
 
-      // Check dangling/isolated tasks if multiple tasks exist
-      if (tasks.length > 2 && !t.parent_id && (!t.children || t.children.length === 0)) {
+      // Long tasks check (> 20 working days without decomposition)
+      if (!t.is_summary && !t.is_milestone && t.duration_days > 20) {
+        longTasksCount++;
+        issues.push({
+          severity: 'warning',
+          taskId: t.id,
+          taskName: t.name,
+          code: 'LONG_TASK',
+          message: `Длинная задача «${t.name}» (${t.duration_days} раб. дн.). Рекомендуется декомпозировать на подзадачи (≤20д)`
+        });
+      }
+
+      // Hard constraint or manual lock
+      if (t.is_manual) {
+        hardConstraintsCount++;
+        issues.push({
+          severity: 'info',
+          taskId: t.id,
+          taskName: t.name,
+          code: 'MANUAL_CONSTRAINT',
+          message: `Задача «${t.name}» зафиксирована вручную (жесткая дата)`
+        });
+      }
+
+      // High Total Float (> 44 working days)
+      if (!t.is_summary && t.total_float > 44) {
+        highFloatCount++;
+        issues.push({
+          severity: 'info',
+          taskId: t.id,
+          taskName: t.name,
+          code: 'HIGH_FLOAT',
+          message: `Большой резерв времени у «${t.name}» (${t.total_float} раб. дн.)`
+        });
+      }
+
+      // Check dangling/isolated tasks (missing predecessors or successors)
+      if (tasks.length > 2 && !t.is_summary && !t.parent_id) {
         const preds = predMap.get(t.id) || [];
         const succs = succMap.get(t.id) || [];
-        if (preds.length === 0 && succs.length === 0) {
+        if (preds.length === 0 && !t.is_milestone) {
+          missingPredsCount++;
           issues.push({
-            severity: 'info',
+            severity: 'warning',
             taskId: t.id,
-            message: `Задача "${t.name}" не имеет предшественников и последователей`
+            taskName: t.name,
+            code: 'MISSING_PREDECESSOR',
+            message: `Висячее начало: задача «${t.name}» не имеет предшественников`
+          });
+        }
+        if (succs.length === 0 && !t.is_milestone) {
+          missingSuccsCount++;
+          issues.push({
+            severity: 'warning',
+            taskId: t.id,
+            taskName: t.name,
+            code: 'MISSING_SUCCESSOR',
+            message: `Висячий конец: задача «${t.name}» не имеет последователей`
           });
         }
       }
     });
 
-    return issues;
+    // Check negative lags (leads) in dependencies
+    let negativeLagCount = 0;
+    dependencies.forEach(d => {
+      if (d.lag_workdays < 0) {
+        negativeLagCount++;
+        const pName = taskMap.get(d.pred_id)?.name || d.pred_id;
+        const sName = taskMap.get(d.succ_id)?.name || d.succ_id;
+        issues.push({
+          severity: 'warning',
+          code: 'NEGATIVE_LAG',
+          message: `Отрицательный лаг (${d.lag_workdays}д) между «${pName}» и «${sName}». Скрытый риск расписания`
+        });
+      }
+    });
+
+    // Compute Health Quality Score (0 to 100%)
+    let penalty = 0;
+    if (cycle.hasCycle) penalty += 50;
+    penalty += issues.filter(i => i.severity === 'error' && i.code !== 'CYCLE_DETECTED').length * 15;
+    penalty += (missingPredsCount + missingSuccsCount) * 4;
+    penalty += longTasksCount * 3;
+    penalty += negativeLagCount * 5;
+    const healthScore = Math.max(0, Math.min(100, Math.round(100 - penalty)));
+
+    return {
+      issues,
+      healthScore,
+      stats: {
+        totalTasks: tasks.length,
+        missingPredsCount,
+        missingSuccsCount,
+        longTasksCount,
+        negativeLagCount,
+        hasCycle: cycle.hasCycle
+      }
+    };
   }
 };

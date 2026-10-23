@@ -55,35 +55,64 @@
 
     <!-- Main Viewport -->
     <main class="main-viewport">
+      <!-- What-If Sandbox Mode Banner -->
+      <div class="sandbox-banner" id="sandbox-banner">
+        <span>⚡ <b>Режим «Что-если» активен:</b> Любые изменения временные и не влияют на утверждённый базовый план проекта.</span>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-sm btn-primary" id="btn-sandbox-apply" style="background: #10b981; border-color: #10b981;">Принять изменения</button>
+          <button class="btn btn-sm" id="btn-sandbox-reset" style="background: rgba(0,0,0,0.3); color: #fff;">Сбросить сценарий</button>
+        </div>
+      </div>
+
       <!-- Toolbar -->
       <div class="toolbar">
+        <!-- Task Operations Group -->
         <div class="toolbar-group">
           <button class="btn btn-sm btn-primary" id="btn-add-task">+ Задача</button>
           <button class="btn btn-sm" id="btn-add-milestone">◆ Веха</button>
-          <button class="btn btn-sm" id="btn-edit-task" title="Редактировать параметры выбранной задачи">✏️ Изменить</button>
-          <button class="btn btn-sm" id="btn-indent" title="Сделать подзадачей (WBS)">➔ Уровень</button>
-          <button class="btn btn-sm" id="btn-outdent" title="Поднять уровень (WBS)">⬅ Назад</button>
-          <button class="btn btn-sm" id="btn-move-up" title="Переместить задачу вверх (Alt+Up)">▲</button>
-          <button class="btn btn-sm" id="btn-move-down" title="Переместить задачу вниз (Alt+Down)">▼</button>
-          <button class="btn btn-sm btn-danger" id="btn-delete-task" title="Удалить выбранную задачу">🗑</button>
+          <button class="btn btn-sm" id="btn-edit-task">✏️ Изменить</button>
+          <span class="tip-q" data-tooltip="Добавление и редактирование задач или вех (нулевая длительность)">?</span>
         </div>
 
+        <!-- Hierarchy & Order Group -->
         <div class="toolbar-group">
-          <input type="text" id="task-search-input" placeholder="🔍 Поиск задач..." style="background: var(--bg-tertiary); color: #fff; border: 1px solid var(--border-color); padding: 5px 10px; border-radius: var(--radius-sm); font-size: 0.78rem; width: 140px; outline: none;">
+          <button class="btn btn-sm" id="btn-indent">➔ Уровень</button>
+          <button class="btn btn-sm" id="btn-outdent">⬅ Назад</button>
+          <button class="btn btn-sm" id="btn-move-up">▲</button>
+          <button class="btn btn-sm" id="btn-move-down">▼</button>
+          <button class="btn btn-sm btn-danger" id="btn-delete-task">🗑</button>
+          <span class="tip-q" data-tooltip="Управление структурой WBS (вложенность) и порядок строк. Задачи также можно перемещать мышью за номер">?</span>
         </div>
 
+        <!-- Search Group -->
         <div class="toolbar-group">
-          <button class="btn btn-sm" id="btn-import-excel" title="Импорт XLSX или вставка из буфера">📊 Импорт Excel / TSV</button>
-          <input type="file" id="input-excel-file" accept=".xlsx,.csv" style="display: none;">
-          <button class="btn btn-sm" id="btn-export-excel" title="Экспорт проекта в XLSX">Выгрузить Excel</button>
-          <button class="btn btn-sm" id="btn-export-pdf" title="Печать плана в PDF через системный диалог">Печать PDF</button>
+          <input type="text" id="task-search-input" placeholder="🔍 Поиск..." style="background: var(--bg-tertiary); color: #fff; border: 1px solid var(--border-color); padding: 5px 10px; border-radius: var(--radius-sm); font-size: 0.78rem; width: 110px; outline: none;">
         </div>
 
+        <!-- Smart Tools Group (Health Audit, What-If, Resources) -->
         <div class="toolbar-group">
-          <button class="btn btn-sm" id="btn-transfer-peer" title="Сформировать файл передачи коллеге">📤 Передать</button>
-          <button class="btn btn-sm" id="btn-return-peer" title="Вернуть изменения автору">🔄 Возврат</button>
+          <button class="btn btn-sm" id="btn-open-health" style="border-color: rgba(16, 185, 129, 0.4);">
+            🩺 Аудит <span id="toolbar-health-badge" style="background: #10b981; color: #fff; padding: 1px 5px; border-radius: 10px; font-size: 0.68rem; margin-left: 2px;">100%</span>
+          </button>
+          <span class="tip-q" data-tooltip="Интеллектуальная проверка качества расписания (DCMA-14): висячие концы, циклы, скрытые риски">?</span>
+
+          <button class="btn btn-sm" id="btn-toggle-sandbox" style="border-color: rgba(245, 158, 11, 0.4);">⚡ Что-если</button>
+          <span class="tip-q" data-tooltip="Сценарное моделирование: тестирование сдвигов сроков без риска испортить основной план">?</span>
+
+          <button class="btn btn-sm" id="btn-toggle-resources">👥 Ресурсы</button>
+          <span class="tip-q" data-tooltip="Панель балансировки загрузки исполнителей и выявления перегрузок">?</span>
         </div>
 
+        <!-- Unified Import / Export Hub -->
+        <div class="toolbar-group">
+          <button class="btn btn-sm" id="btn-open-import-hub" style="background: linear-gradient(135deg, #1e293b, #334155);">📥 Импорт...</button>
+          <span class="tip-q" data-tooltip="Единый центр импорта: Excel (.xlsx/.csv), вставка из буфера обмена (TSV), пакет от коллеги (*.lpmproject)">?</span>
+
+          <button class="btn btn-sm" id="btn-open-export-hub" style="background: linear-gradient(135deg, #1e293b, #334155);">📤 Экспорт...</button>
+          <span class="tip-q" data-tooltip="Единый центр выгрузки: Excel, отчёт для руководства (PDF/PNG), передача проекта коллеге">?</span>
+        </div>
+
+        <!-- Scale & Viewport Group -->
         <div class="toolbar-group" style="border-right: none;">
           <span style="font-size: 0.75rem; color: #94a3b8;">Масштаб:</span>
           <select id="select-scale" style="background: var(--bg-tertiary); color: #fff; border: 1px solid var(--border-color); padding: 3px 6px; border-radius: 4px; font-size: 0.75rem;">
@@ -92,7 +121,7 @@
             <option value="month">Месяц</option>
             <option value="quarter">Квартал</option>
           </select>
-          <button class="btn btn-sm" id="btn-export-png" title="Скачать диаграмму Ганта как PNG">PNG</button>
+          <span class="tip-q" data-tooltip="Масштаб временной оси Ганта. Также можно масштабировать колесом мыши с зажатым Ctrl">?</span>
         </div>
       </div>
 
@@ -116,6 +145,17 @@
 
         <div class="gantt-panel" id="gantt-container">
           <canvas id="gantt-canvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Resource Heatmap Panel (Collapsible) -->
+      <div class="resource-panel" id="resource-panel">
+        <div class="resource-panel-header">
+          <span>👥 Загрузка и балансировка исполнителей</span>
+          <button class="btn btn-sm" id="btn-close-resources" style="padding: 2px 6px; font-size: 0.7rem;">✕ Закрыть</button>
+        </div>
+        <div class="resource-list" id="resource-list-el">
+          <!-- Rendered by JS -->
         </div>
       </div>
 
@@ -175,67 +215,157 @@
     </div>
   </div>
 
-  <!-- Modal: Import Excel / TSV (FR-5.04) -->
-  <div class="modal-overlay" id="modal-import">
+  <!-- Unified Modal: Import Hub with Tabs -->
+  <div class="modal-overlay" id="modal-import-hub">
     <div class="modal-window" style="width: 720px;">
       <div class="modal-header">
-        <span>Мастер импорта задач из Excel / TSV</span>
-        <button class="btn btn-sm" onclick="app.closeModal('modal-import')">✕</button>
+        <span>📥 Центр импорта данных</span>
+        <button class="btn btn-sm" onclick="app.closeModal('modal-import-hub')">✕</button>
+      </div>
+      <div class="modal-tabs-header">
+        <button class="modal-tab-btn active" data-tab-target="tab-import-excel">📊 Excel / CSV</button>
+        <button class="modal-tab-btn" data-tab-target="tab-import-tsv">📋 Буфер обмена (TSV)</button>
+        <button class="modal-tab-btn" data-tab-target="tab-import-peer">📦 Пакет от коллеги (*.lpmproject)</button>
       </div>
       <div class="modal-body">
-        <div style="display: flex; gap: 8px;">
-          <button class="btn btn-primary btn-sm" id="btn-import-pick-file">Выбрать файл .xlsx / .csv</button>
-          <button class="btn btn-sm" id="btn-paste-clipboard">Вставить из буфера обмена (Ctrl+V)</button>
+        <!-- Tab 1: Excel File -->
+        <div class="modal-tab-content active" id="tab-import-excel">
+          <p style="font-size: 0.82rem; color: #94a3b8;">
+            Выберите файл электронной таблицы <code>.xlsx</code> или <code>.csv</code>. Распознаются колонки: Имя, Длительность, Предшественники, WBS, Ответственный.
+          </p>
+          <div style="padding: 20px; border: 2px dashed var(--border-color); border-radius: 8px; text-align: center;">
+            <button class="btn btn-primary" id="btn-import-pick-file">Выбрать файл .xlsx / .csv</button>
+            <input type="file" id="input-excel-file" accept=".xlsx,.csv" style="display: none;">
+          </div>
         </div>
-        <div class="form-group" style="margin-top: 10px;">
-          <label>Вставка текстовых данных (TSV / разделители табуляции):</label>
-          <textarea id="import-tsv-input" rows="5" placeholder="Вставьте скопированные строки из Excel сюда..."></textarea>
+
+        <!-- Tab 2: TSV / Clipboard -->
+        <div class="modal-tab-content" id="tab-import-tsv">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-size: 0.8rem; color: var(--text-secondary);">Вставьте строки, скопированные из Excel или Google Sheets:</label>
+            <button class="btn btn-sm" id="btn-paste-clipboard">Вставить из буфера (Ctrl+V)</button>
+          </div>
+          <textarea id="import-tsv-input" rows="6" placeholder="Вставьте скопированные ячейки сюда..."></textarea>
+          <button class="btn btn-primary btn-sm" id="btn-execute-import" style="align-self: flex-end;">Импортировать текст</button>
         </div>
-        <div id="import-preview-area" style="font-size: 0.8rem; max-height: 160px; overflow: auto; border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; display: none;">
-          <!-- Preview table -->
+
+        <!-- Tab 3: Peer Package -->
+        <div class="modal-tab-content" id="tab-import-peer">
+          <p style="font-size: 0.82rem; color: #94a3b8;">
+            Импорт защищённого пакета <code>*.lpmproject</code>, полученного от коллеги (с проверкой SHA-256).
+          </p>
+          <div style="padding: 20px; border: 2px dashed var(--border-color); border-radius: 8px; text-align: center;">
+            <button class="btn btn-primary" id="btn-import-peer-tab-btn">Выбрать пакет *.lpmproject</button>
+          </div>
         </div>
-        <div class="form-group">
-          <label>Режим импорта:</label>
+
+        <div class="form-group" style="margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 10px;">
+          <label>Режим объединения с текущим проектом:</label>
           <select id="import-mode-select">
-            <option value="append">Добавить к текущему плану проекта</option>
-            <option value="replace">Полностью заменить существующий план</option>
+            <option value="append">Добавить новые задачи к текущему плану</option>
+            <option value="replace">Полностью заменить существующий план проекта</option>
           </select>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn" onclick="app.closeModal('modal-import')">Отмена</button>
-        <button class="btn btn-primary" id="btn-execute-import">Выполнить импорт</button>
+        <button class="btn" onclick="app.closeModal('modal-import-hub')">Закрыть</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal: Peer Transfer Package (FR-17) -->
-  <div class="modal-overlay" id="modal-transfer">
-    <div class="modal-window">
+  <!-- Unified Modal: Export Hub with Tabs -->
+  <div class="modal-overlay" id="modal-export-hub">
+    <div class="modal-window" style="width: 680px;">
       <div class="modal-header">
-        <span id="modal-transfer-title">Передача проекта коллеге</span>
-        <button class="btn btn-sm" onclick="app.closeModal('modal-transfer')">✕</button>
+        <span>📤 Центр выгрузки и отчётности</span>
+        <button class="btn btn-sm" onclick="app.closeModal('modal-export-hub')">✕</button>
+      </div>
+      <div class="modal-tabs-header">
+        <button class="modal-tab-btn active" data-tab-target="tab-export-report">🖨️ Отчёт для руководства</button>
+        <button class="modal-tab-btn" data-tab-target="tab-export-data">📊 Таблица Excel (.xlsx)</button>
+        <button class="modal-tab-btn" data-tab-target="tab-export-peer">📦 Передача коллеге (*.lpmproject)</button>
       </div>
       <div class="modal-body">
-        <p style="font-size: 0.82rem; color: #94a3b8;">
-          Формируется переносимый пакет <code>*.lpmproject</code> с контрольной суммой SHA-256. Получатель сможет импортировать его в своё рабочее пространство без сервера.
-        </p>
-        <div class="form-group">
-          <label>Ваше имя (отправитель)</label>
-          <input type="text" id="transfer-sender-name" value="Руководитель проекта">
+        <!-- Tab 1: Executive Report -->
+        <div class="modal-tab-content active" id="tab-export-report">
+          <p style="font-size: 0.82rem; color: #94a3b8;">
+            Формирование презентационного отчёта со сводными метриками, прогрессом и графиком для печати или рассылки стейкхолдерам.
+          </p>
+          <div style="display: flex; gap: 12px;">
+            <button class="btn btn-primary" id="btn-export-pdf" style="flex: 1; justify-content: center;">
+              📄 Распечатать / Сохранить в PDF (A4/A3)
+            </button>
+            <button class="btn" id="btn-export-png" style="flex: 1; justify-content: center;">
+              🖼️ Скачать диаграмму Ганта как PNG
+            </button>
+          </div>
         </div>
-        <div class="form-group">
-          <label>Кому передаётся (имя коллеги, необязательно)</label>
-          <input type="text" id="transfer-recipient-name" placeholder="Например, Иванов И.И.">
+
+        <!-- Tab 2: Excel Export -->
+        <div class="modal-tab-content" id="tab-export-data">
+          <p style="font-size: 0.82rem; color: #94a3b8;">
+            Выгрузка полного реестра задач, связей, резервов времени и критического пути в формат Microsoft Excel (.xlsx).
+          </p>
+          <button class="btn btn-primary" id="btn-export-excel" style="align-self: flex-start;">
+            📊 Скачать файл Excel (.xlsx)
+          </button>
         </div>
-        <div class="form-group">
-          <label>Комментарий к передаче</label>
-          <textarea id="transfer-comment" rows="3" placeholder="План на согласование..."></textarea>
+
+        <!-- Tab 3: Peer Transfer -->
+        <div class="modal-tab-content" id="tab-export-peer">
+          <p style="font-size: 0.82rem; color: #94a3b8;">
+            Экспорт переносимого пакета <code>*.lpmproject</code> с контрольной суммой SHA-256 для рецензирования или возврата автору.
+          </p>
+          <div class="form-group">
+            <label>Ваше имя (отправитель)</label>
+            <input type="text" id="transfer-sender-name" value="Руководитель проекта">
+          </div>
+          <div class="form-group">
+            <label>Кому передаётся (имя коллеги)</label>
+            <input type="text" id="transfer-recipient-name" placeholder="Например, Иванов И.И.">
+          </div>
+          <div class="form-group">
+            <label>Комментарий</label>
+            <textarea id="transfer-comment" rows="2" placeholder="План на согласование..."></textarea>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-primary" id="btn-do-transfer">📤 Сформировать передачу</button>
+            <button class="btn" id="btn-return-peer">🔄 Оформить возврат автору</button>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn" onclick="app.closeModal('modal-transfer')">Отмена</button>
-        <button class="btn btn-primary" id="btn-do-transfer">Скачать пакет *.lpmproject</button>
+        <button class="btn" onclick="app.closeModal('modal-export-hub')">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Schedule Health Audit (DCMA 14-Point Check) -->
+  <div class="modal-overlay" id="modal-health">
+    <div class="modal-window" style="width: 680px;">
+      <div class="modal-header">
+        <span>🩺 Интеллектуальный аудит расписания (DCMA-14)</span>
+        <button class="btn btn-sm" onclick="app.closeModal('modal-health')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="health-score-card">
+          <div class="health-score-circle" id="health-modal-circle">100%</div>
+          <div>
+            <h3 id="health-modal-status" style="font-size: 1.05rem; margin-bottom: 4px;">План высокого качества</h3>
+            <p id="health-modal-summary" style="font-size: 0.8rem; color: #94a3b8;">
+              Все ключевые зависимости настроены корректно, критический путь рассчитан без разрывов.
+            </p>
+          </div>
+        </div>
+        <div style="font-size: 0.82rem; font-weight: 600; color: #cbd5e1; margin-top: 6px;">
+          Выявленные рекомендации и предупреждения:
+        </div>
+        <div id="health-issues-list" style="max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="app.closeModal('modal-health')">Понятно</button>
       </div>
     </div>
   </div>

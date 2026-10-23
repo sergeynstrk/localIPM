@@ -353,8 +353,46 @@ export class GanttChart {
         ctx.fill();
         ctx.fillStyle = '#f8fafc';
         ctx.fillText(labelText, tx, ty + 12);
+
+        // Connection Ports for Drag-to-Link
+        if (!t.is_summary) {
+          // Outport on the right
+          ctx.fillStyle = '#6366f1';
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(finishX, barY + barH / 2, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Inport on the left
+          ctx.fillStyle = '#10b981';
+          ctx.beginPath();
+          ctx.arc(startX, barY + barH / 2, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
       }
     });
+
+    // Render Drag-to-Link live connecting line
+    if (this.dragLink && this.dragLink.active) {
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(this.dragLink.fromX, this.dragLink.fromY);
+      ctx.lineTo(this.dragLink.curX, this.dragLink.curY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.lineWidth = 1;
+
+      // Draw pulsing target circle
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.arc(this.dragLink.curX, this.dragLink.curY, 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   renderDependencies() {
@@ -422,7 +460,7 @@ export class GanttChart {
     let startX = 0;
     let startY = 0;
 
-    // Helper to find task bar at coordinates and check if near right edge (handle)
+    // Helper to find task bar at coordinates and check if near right edge (handle) or port
     const getTaskAtPos = (clientX, clientY) => {
       const rect = this.canvas.getBoundingClientRect();
       const mouseX = clientX - rect.left;
@@ -437,30 +475,54 @@ export class GanttChart {
       if (rowIndex < 0 || rowIndex >= this.tasks.length) return null;
 
       const task = this.tasks[rowIndex];
-      if (task.is_milestone || task.is_summary) return { task, isHandle: false, mouseX, mouseY };
+      if (task.is_milestone || task.is_summary) return { task, isHandle: false, isOutPort: false, isInPort: false, mouseX, mouseY };
 
       const barStartX = this.dateToX(task.start_date) - this.scrollX;
-      const barFinishX = this.dateToX(task.finish_date) + (this.options.scale === 'day' ? this.options.dayWidth : 0) - this.scrollX;
+      const finishX = this.dateToX(task.finish_date) + (this.options.scale === 'day' ? this.options.dayWidth : 0) - this.scrollX;
+      const barH = 20;
+      const rowY = headerH + rowIndex * rHeight - this.scrollY;
+      const barY = rowY + (rHeight - barH) / 2;
 
-      // Handle is within 10px of the right finish edge
-      const isNearRightEdge = Math.abs(mouseX - barFinishX) <= 10;
-      const isInsideBar = mouseX >= barStartX && mouseX <= barFinishX;
+      // Ports are at (finishX, barY + barH / 2) and (barStartX, barY + barH / 2)
+      const distToOutPort = Math.hypot(mouseX - finishX, mouseY - (barY + barH / 2));
+      const distToInPort = Math.hypot(mouseX - barStartX, mouseY - (barY + barH / 2));
+
+      const isOutPort = distToOutPort <= 8;
+      const isInPort = distToInPort <= 8;
+      const isNearRightEdge = Math.abs(mouseX - finishX) <= 10 && !isOutPort;
+      const isInsideBar = mouseX >= barStartX && mouseX <= finishX;
 
       return {
         task,
+        rowIndex,
         isHandle: isNearRightEdge,
+        isOutPort,
+        isInPort,
+        portX: isOutPort ? finishX : barStartX,
+        portY: barY + barH / 2,
         isInside: isInsideBar,
         mouseX,
         mouseY
       };
     };
 
+    this.dragLink = null;
+
     this.canvas.addEventListener('mousemove', (e) => {
       if (isResizing) return;
       if (isPanning) return;
+      if (this.dragLink && this.dragLink.active) {
+        const rect = this.canvas.getBoundingClientRect();
+        this.dragLink.curX = e.clientX - rect.left;
+        this.dragLink.curY = e.clientY - rect.top;
+        this.render();
+        return;
+      }
 
       const hit = getTaskAtPos(e.clientX, e.clientY);
-      if (hit && hit.isHandle) {
+      if (hit && (hit.isOutPort || hit.isInPort)) {
+        this.canvas.style.cursor = 'crosshair';
+      } else if (hit && hit.isHandle) {
         this.canvas.style.cursor = 'ew-resize';
       } else if (hit && hit.isInside) {
         this.canvas.style.cursor = 'pointer';
@@ -471,6 +533,20 @@ export class GanttChart {
 
     this.canvas.addEventListener('mousedown', (e) => {
       const hit = getTaskAtPos(e.clientX, e.clientY);
+
+      // Start Drag-to-Link from right port
+      if (hit && hit.isOutPort) {
+        this.dragLink = {
+          active: true,
+          fromTaskId: hit.task.id,
+          fromX: hit.portX,
+          fromY: hit.portY,
+          curX: hit.portX,
+          curY: hit.portY
+        };
+        e.preventDefault();
+        return;
+      }
 
       if (hit && hit.isHandle && !hit.task.is_summary && !hit.task.is_milestone) {
         // Start duration resize
@@ -523,7 +599,19 @@ export class GanttChart {
       this.render();
     });
 
-    window.addEventListener('mouseup', () => {
+    window.addEventListener('mouseup', (e) => {
+      if (this.dragLink && this.dragLink.active) {
+        const hit = getTaskAtPos(e.clientX, e.clientY);
+        if (hit && hit.task && hit.task.id !== this.dragLink.fromTaskId) {
+          if (this.onLinkCreated) {
+            this.onLinkCreated(this.dragLink.fromTaskId, hit.task.id, 'FS', 0);
+          }
+        }
+        this.dragLink = null;
+        this.canvas.style.cursor = 'default';
+        this.render();
+      }
+
       if (isResizing) {
         isResizing = false;
         resizingTask = null;
