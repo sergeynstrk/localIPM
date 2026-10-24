@@ -354,44 +354,80 @@ export class GanttChart {
         ctx.fillStyle = '#f8fafc';
         ctx.fillText(labelText, tx, ty + 12);
 
-        // Visual Resize Handle Grip on right edge (Stretch duration)
+        // 1. Visual Resize Handle Grip on right edge of bar (Stretch duration)
         if (!t.is_summary) {
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
-          const hX = finishX - 3;
-          ctx.fillRect(hX, barY + 4, 2, barH - 8);
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+          const hX = finishX - 4;
+          ctx.fillRect(hX, barY + 3, 3, barH - 6);
 
-          // Connection Port for Drag-to-Link (shifted outside bar)
-          ctx.fillStyle = '#6366f1';
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.arc(finishX + 4, barY + barH / 2, 4, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.stroke();
+          // 2. Draw.io style Link Arrow Button (shows on hover or when dragging link)
+          const isHovered = this.hoveredTaskId === t.id;
+          const showLinkHandle = isHovered || (this.dragLink && this.dragLink.active);
 
-          // Inport on the left
-          ctx.fillStyle = '#10b981';
-          ctx.beginPath();
-          ctx.arc(startX - 4, barY + barH / 2, 4, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.stroke();
+          if (showLinkHandle) {
+            const arrowX = finishX + 16;
+            const arrowY = barY + barH / 2;
+
+            // Small connecting dotted stem from bar to arrow handle
+            ctx.strokeStyle = 'rgba(99, 102, 241, 0.4)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([2, 2]);
+            ctx.beginPath();
+            ctx.moveTo(finishX, arrowY);
+            ctx.lineTo(arrowX - 8, arrowY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw.io style circular badge with right arrow
+            ctx.fillStyle = '#6366f1';
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(arrowX, arrowY, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Right arrow icon inside badge
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.moveTo(arrowX - 2, arrowY - 4);
+            ctx.lineTo(arrowX + 3, arrowY);
+            ctx.lineTo(arrowX - 2, arrowY + 4);
+            ctx.closePath();
+            ctx.fill();
+          }
+
+          // Target Inport on the left (visible when drag-linking)
+          if (this.dragLink && this.dragLink.active && this.dragLink.fromTaskId !== t.id) {
+            ctx.fillStyle = '#10b981';
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(startX - 6, barY + barH / 2, 7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          }
         }
       }
     });
 
-    // Render Drag-to-Link live connecting line
+    // Render Drag-to-Link live connecting line (curved Bezier like draw.io)
     if (this.dragLink && this.dragLink.active) {
       ctx.strokeStyle = '#f59e0b';
       ctx.lineWidth = 2.5;
-      ctx.setLineDash([4, 4]);
+      ctx.setLineDash([5, 4]);
       ctx.beginPath();
       ctx.moveTo(this.dragLink.fromX, this.dragLink.fromY);
-      ctx.lineTo(this.dragLink.curX, this.dragLink.curY);
+      const c1X = this.dragLink.fromX + 40;
+      const c1Y = this.dragLink.fromY;
+      const c2X = this.dragLink.curX - 40;
+      const c2Y = this.dragLink.curY;
+      ctx.bezierCurveTo(c1X, c1Y, c2X, c2Y, this.dragLink.curX, this.dragLink.curY);
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.lineWidth = 1;
 
-      // Draw pulsing target circle
+      // Draw glowing target arrow head
       ctx.fillStyle = '#f59e0b';
       ctx.beginPath();
       ctx.arc(this.dragLink.curX, this.dragLink.curY, 6, 0, Math.PI * 2);
@@ -487,24 +523,29 @@ export class GanttChart {
       const rowY = headerH + rowIndex * rHeight - this.scrollY;
       const barY = rowY + (rHeight - barH) / 2;
 
-      // Ports are at finishX + 4 and startX - 4
-      const distToOutPort = Math.hypot(mouseX - (finishX + 4), mouseY - (barY + barH / 2));
-      const distToInPort = Math.hypot(mouseX - (startX - 4), mouseY - (barY + barH / 2));
+      // 1. Draw.io style Link Arrow Button is at (finishX + 16, barY + barH / 2)
+      const arrowCenterX = finishX + 16;
+      const arrowCenterY = barY + barH / 2;
+      const distToArrow = Math.hypot(mouseX - arrowCenterX, mouseY - arrowCenterY);
+      const isArrowButton = distToArrow <= 12;
 
-      // Right edge resize handle (within 12px of finishX)
-      const isNearRightEdge = Math.abs(mouseX - finishX) <= 10;
-      const isOutPort = distToOutPort <= 6 && !isNearRightEdge;
-      const isInPort = distToInPort <= 6;
+      // 2. Right edge resize handle (within bar's right border: finishX - 8 to finishX + 3)
+      const isNearRightEdge = !isArrowButton && (mouseX >= finishX - 8 && mouseX <= finishX + 4);
+
+      // 3. Target Inport on the left (startX - 6, barY + barH / 2)
+      const distToInPort = Math.hypot(mouseX - (startX - 6), mouseY - (barY + barH / 2));
+      const isInPort = distToInPort <= 12;
+
       const isInsideBar = mouseX >= barStartX && mouseX <= finishX;
 
       return {
         task,
         rowIndex,
         isHandle: isNearRightEdge,
-        isOutPort,
+        isArrowButton,
         isInPort,
-        portX: isOutPort ? finishX + 4 : startX - 4,
-        portY: barY + barH / 2,
+        arrowX: arrowCenterX,
+        arrowY: arrowCenterY,
         isInside: isInsideBar,
         mouseX,
         mouseY
@@ -525,7 +566,13 @@ export class GanttChart {
       }
 
       const hit = getTaskAtPos(e.clientX, e.clientY);
-      if (hit && (hit.isOutPort || hit.isInPort)) {
+      const prevHovered = this.hoveredTaskId;
+      this.hoveredTaskId = hit && hit.task ? hit.task.id : null;
+      if (prevHovered !== this.hoveredTaskId) {
+        this.render();
+      }
+
+      if (hit && hit.isArrowButton) {
         this.canvas.style.cursor = 'crosshair';
       } else if (hit && hit.isHandle) {
         this.canvas.style.cursor = 'ew-resize';
@@ -542,21 +589,23 @@ export class GanttChart {
     });
 
     this.canvas.addEventListener('mouseleave', () => {
+      this.hoveredTaskId = null;
+      this.render();
       if (this.onTaskHover) this.onTaskHover(null, 0, 0);
     });
 
     this.canvas.addEventListener('mousedown', (e) => {
       const hit = getTaskAtPos(e.clientX, e.clientY);
 
-      // Start Drag-to-Link from right port
-      if (hit && hit.isOutPort) {
+      // Start Drag-to-Link from Draw.io Arrow Button
+      if (hit && hit.isArrowButton) {
         this.dragLink = {
           active: true,
           fromTaskId: hit.task.id,
-          fromX: hit.portX,
-          fromY: hit.portY,
-          curX: hit.portX,
-          curY: hit.portY
+          fromX: hit.arrowX,
+          fromY: hit.arrowY,
+          curX: hit.arrowX,
+          curY: hit.arrowY
         };
         e.preventDefault();
         return;

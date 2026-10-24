@@ -94,43 +94,59 @@
 
         <!-- Search Group -->
         <div class="toolbar-group">
-          <input type="text" id="task-search-input" placeholder="🔍 Поиск..." style="background: var(--bg-tertiary); color: #fff; border: 1px solid var(--border-color); padding: 5px 10px; border-radius: var(--radius-sm); font-size: 0.78rem; width: 110px; outline: none;">
+          <div class="search-input-wrap">
+            <svg class="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="task-search-input" placeholder="Поиск задач..." />
+          </div>
         </div>
 
         <!-- Smart Tools Group (Health Audit, What-If, Resources) -->
-        <div class="toolbar-group">
-          <button class="btn btn-sm" id="btn-open-health" style="border-color: rgba(16, 185, 129, 0.4);">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-            Аудит <span id="toolbar-health-badge" style="background: #10b981; color: #fff; padding: 1px 5px; border-radius: 10px; font-size: 0.68rem; margin-left: 2px;">100%</span>
-          </button>
-          <span class="tip-q" data-tooltip="Интеллектуальная проверка качества расписания (DCMA-14): висячие концы, циклы, скрытые риски">?</span>
+        <div class="toolbar-group toolbar-smart-group">
+          <div class="btn-tip-pair">
+            <button class="btn btn-sm" id="btn-open-health" style="border-color: rgba(16, 185, 129, 0.4);">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              Аудит <span id="toolbar-health-badge" style="background: #10b981; color: #fff; padding: 1px 5px; border-radius: 10px; font-size: 0.68rem; margin-left: 2px;">100%</span>
+            </button>
+            <span class="tip-q" data-tooltip="Интеллектуальная проверка качества расписания (DCMA-14): висячие концы, циклы, скрытые риски">?</span>
+          </div>
 
-          <button class="btn btn-sm" id="btn-toggle-sandbox" style="border-color: rgba(245, 158, 11, 0.4);">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-            Что-если
-          </button>
-          <span class="tip-q" data-tooltip="Сценарное моделирование: тестирование сдвигов сроков без риска испортить основной план">?</span>
+          <div class="btn-tip-pair">
+            <button class="btn btn-sm" id="btn-toggle-sandbox" style="border-color: rgba(245, 158, 11, 0.4);">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              Что-если
+            </button>
+            <span class="tip-q" data-tooltip="Сценарное моделирование: тестирование сдвигов сроков без риска испортить основной план">?</span>
+          </div>
 
-          <button class="btn btn-sm" id="btn-toggle-resources">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            Ресурсы
-          </button>
-          <span class="tip-q" data-tooltip="Панель балансировки загрузки исполнителей и выявления перегрузок">?</span>
+          <div class="btn-tip-pair">
+            <button class="btn btn-sm" id="btn-toggle-resources">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Ресурсы
+            </button>
+            <span class="tip-q" data-tooltip="Панель балансировки загрузки исполнителей и выявления перегрузок">?</span>
+          </div>
         </div>
 
         <!-- Unified Import / Export Hub -->
         <div class="toolbar-group">
-          <button class="btn btn-sm" id="btn-open-import-hub" style="background: linear-gradient(135deg, #1e293b, #334155);">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Импорт...
-          </button>
-          <span class="tip-q" data-tooltip="Единый центр импорта: Excel (.xlsx/.csv), вставка из буфера обмена (TSV), пакет от коллеги (*.lpmproject)">?</span>
+          <div class="btn-tip-pair">
+            <button class="btn btn-sm" id="btn-open-import-hub" style="background: linear-gradient(135deg, #1e293b, #334155);">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Импорт...
+            </button>
+            <span class="tip-q" data-tooltip="Единый центр импорта: Excel (.xlsx/.csv), вставка из буфера обмена (TSV), пакет от коллеги (*.lpmproject)">?</span>
+          </div>
 
-          <button class="btn btn-sm" id="btn-open-export-hub" style="background: linear-gradient(135deg, #1e293b, #334155);">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Экспорт...
-          </button>
-          <span class="tip-q" data-tooltip="Единый центр выгрузки: Excel, отчёт для руководства (PDF/PNG), передача проекта коллеге">?</span>
+          <div class="btn-tip-pair">
+            <button class="btn btn-sm" id="btn-open-export-hub" style="background: linear-gradient(135deg, #1e293b, #334155);">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Экспорт...
+            </button>
+            <span class="tip-q" data-tooltip="Единый центр выгрузки: Excel, отчёт для руководства (PDF/PNG), передача проекта коллеге">?</span>
+          </div>
         </div>
 
         <!-- Scale & Viewport Group -->

@@ -608,8 +608,8 @@ class AppController {
   async createDemoProject() {
     const demoProj = {
       id: `proj-demo-1`,
-      name: 'Внедрение корпоративной системы (Пример)',
-      description: 'Демонстрационный план проекта по ТЗ LocalPM',
+      name: 'Внедрение корпоративной ERP/CRM системы (3 месяца)',
+      description: 'Комплексный 3-месячный график проекта: Анализ, Архитектура, Разработка, Ввод в промышленную эксплуатацию',
       start_date: DateUtils.formatISO(new Date()),
       calendar: { type: 'rf', working_days: [1,2,3,4,5] },
       created_at: new Date().toISOString(),
@@ -618,20 +618,63 @@ class AppController {
     };
 
     const demoTasks = [
-      { id: 't1', external_number: '1', name: 'Инициация и согласование ТЗ', duration_days: 5, percent_complete: 100, level: 0 },
-      { id: 't2', external_number: '2', name: 'Анализ требований заказчика', duration_days: 3, percent_complete: 100, parent_id: 't1' },
-      { id: 't3', external_number: '3', name: 'Утверждение ТЗ заказчиком', duration_days: 0, is_milestone: true, parent_id: 't1' },
-      { id: 't4', external_number: '4', name: 'Разработка архитектуры и ядра', duration_days: 8, percent_complete: 70, level: 0 },
-      { id: 't5', external_number: '5', name: 'Диаграмма Ганта на Canvas 2D', duration_days: 5, percent_complete: 50, parent_id: 't4' },
-      { id: 't6', external_number: '6', name: 'Модули импорта и экспорта Excel', duration_days: 4, percent_complete: 30, parent_id: 't4' },
-      { id: 't7', external_number: '7', name: 'Приёмочные испытания и сдача', duration_days: 0, is_milestone: true, level: 0 }
+      // Фаза 1: Предпроектное обследование и ТЗ (15 раб. дней)
+      { id: 't1', external_number: '1', name: '1. Предпроектный анализ и концепция', duration_days: 15, percent_complete: 100, level: 0 },
+      { id: 't2', external_number: '1.1', name: 'Аудит бизнес-процессов и интервью со стейкхолдерами', duration_days: 5, percent_complete: 100, parent_id: 't1' },
+      { id: 't3', external_number: '1.2', name: 'Формирование функциональных требований и ТЗ', duration_days: 7, percent_complete: 100, parent_id: 't1' },
+      { id: 't4', external_number: '1.3', name: 'Юридическое согласование и подписание ТЗ', duration_days: 3, percent_complete: 100, parent_id: 't1' },
+      { id: 't5', external_number: '1.4', name: 'Веха: ТЗ и концепция утверждены', duration_days: 0, is_milestone: true, parent_id: 't1' },
+
+      // Фаза 2: Архитектура и проектирование (18 раб. дней)
+      { id: 't6', external_number: '2', name: '2. Архитектура и проектирование решений', duration_days: 18, percent_complete: 85, level: 0 },
+      { id: 't7', external_number: '2.1', name: 'Проектирование схемы данных и модели безопасности', duration_days: 8, percent_complete: 100, parent_id: 't6' },
+      { id: 't8', external_number: '2.2', name: 'Разработка спецификаций REST API и интеграций', duration_days: 7, percent_complete: 90, parent_id: 't6' },
+      { id: 't9', external_number: '2.3', name: 'UX/UI дизайн ключевых экранных форм', duration_days: 9, percent_complete: 70, parent_id: 't6' },
+      { id: 't10', external_number: '2.4', name: 'Веха: Архитектурный базис зафиксирован', duration_days: 0, is_milestone: true, parent_id: 't6' },
+
+      // Фаза 3: Реализация и интеграция (22 раб. дня)
+      { id: 't11', external_number: '3', name: '3. Разработка функциональных модулей', duration_days: 22, percent_complete: 45, level: 0 },
+      { id: 't12', external_number: '3.1', name: 'Реализация бэкенд-сервисов и бизнес-логики', duration_days: 14, percent_complete: 60, parent_id: 't11' },
+      { id: 't13', external_number: '3.2', name: 'Клиентский интерфейс и диаграммы Ганта', duration_days: 12, percent_complete: 50, parent_id: 't11' },
+      { id: 't14', external_number: '3.3', name: 'Коннекторы импорта/экспорта данных (Excel/XML)', duration_days: 8, percent_complete: 30, parent_id: 't11' },
+      { id: 't15', external_number: '3.4', name: 'Интеграционное тестирование модулей', duration_days: 6, percent_complete: 10, parent_id: 't11' },
+      { id: 't16', external_number: '3.5', name: 'Веха: Релиз-кандидат (Feature Freeze)', duration_days: 0, is_milestone: true, parent_id: 't11' },
+
+      // Фаза 4: Внедрение и опытно-промышленная эксплуатация (12 раб. дней)
+      { id: 't17', external_number: '4', name: '4. ОПЭ, обучение и сдача в эксплуатацию', duration_days: 12, percent_complete: 0, level: 0 },
+      { id: 't18', external_number: '4.1', name: 'Миграция справочников и тестовых данных', duration_days: 4, percent_complete: 0, parent_id: 't17' },
+      { id: 't19', external_number: '4.2', name: 'Обучение ключевых пользователей и регламенты', duration_days: 5, percent_complete: 0, parent_id: 't17' },
+      { id: 't20', external_number: '4.3', name: 'Приёмо-сдаточные испытания (UAT)', duration_days: 5, percent_complete: 0, parent_id: 't17' },
+      { id: 't21', external_number: '4.4', name: 'Веха: Проект сдан заказчику в промышленную эксплуатацию', duration_days: 0, is_milestone: true, level: 0 }
     ];
 
     const demoDeps = [
+      // Фаза 1
       { id: 'd1', pred_id: 't2', succ_id: 't3', type: 'FS', lag_workdays: 0 },
       { id: 'd2', pred_id: 't3', succ_id: 't4', type: 'FS', lag_workdays: 0 },
-      { id: 'd3', pred_id: 't5', succ_id: 't7', type: 'FS', lag_workdays: 0 },
-      { id: 'd4', pred_id: 't6', succ_id: 't7', type: 'FS', lag_workdays: 0 }
+      { id: 'd3', pred_id: 't4', succ_id: 't5', type: 'FS', lag_workdays: 0 },
+
+      // Переход Фаза 1 -> Фаза 2
+      { id: 'd4', pred_id: 't5', succ_id: 't7', type: 'FS', lag_workdays: 0 },
+      { id: 'd5', pred_id: 't5', succ_id: 't9', type: 'FS', lag_workdays: 0 },
+      { id: 'd6', pred_id: 't7', succ_id: 't8', type: 'FS', lag_workdays: 0 },
+      { id: 'd7', pred_id: 't8', succ_id: 't10', type: 'FS', lag_workdays: 0 },
+      { id: 'd8', pred_id: 't9', succ_id: 't10', type: 'FS', lag_workdays: 0 },
+
+      // Переход Фаза 2 -> Фаза 3
+      { id: 'd9', pred_id: 't10', succ_id: 't12', type: 'FS', lag_workdays: 0 },
+      { id: 'd10', pred_id: 't10', succ_id: 't13', type: 'FS', lag_workdays: 1 },
+      { id: 'd11', pred_id: 't12', succ_id: 't14', type: 'SS', lag_workdays: 4 },
+      { id: 'd12', pred_id: 't12', succ_id: 't15', type: 'FS', lag_workdays: 0 },
+      { id: 'd13', pred_id: 't13', succ_id: 't15', type: 'FS', lag_workdays: 0 },
+      { id: 'd14', pred_id: 't14', succ_id: 't15', type: 'FS', lag_workdays: 0 },
+      { id: 'd15', pred_id: 't15', succ_id: 't16', type: 'FS', lag_workdays: 0 },
+
+      // Переход Фаза 3 -> Фаза 4
+      { id: 'd16', pred_id: 't16', succ_id: 't18', type: 'FS', lag_workdays: 0 },
+      { id: 'd17', pred_id: 't18', succ_id: 't19', type: 'FS', lag_workdays: 0 },
+      { id: 'd18', pred_id: 't19', succ_id: 't20', type: 'FS', lag_workdays: 0 },
+      { id: 'd19', pred_id: 't20', succ_id: 't21', type: 'FS', lag_workdays: 0 }
     ];
 
     await db.saveProject(demoProj);

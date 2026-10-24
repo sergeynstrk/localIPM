@@ -239,14 +239,14 @@ body {
 /* Toolbar */
 .toolbar {
   height: 50px;
-  background: rgba(15, 23, 42, 0.7);
+  background: rgba(15, 23, 42, 0.75);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
-  padding: 0 14px;
-  gap: 10px;
+  padding: 0 16px;
+  gap: 16px;
   overflow: visible;
   position: relative;
   z-index: 25;
@@ -255,9 +255,62 @@ body {
 .toolbar-group {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   border-right: 1px solid var(--border-color);
-  padding-right: 10px;
+  padding-right: 14px;
+}
+
+/* Smart tools spacing */
+.toolbar-smart-group {
+  gap: 14px;
+}
+
+/* Button with tightly attached question tooltip */
+.btn-tip-pair {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  position: relative;
+}
+
+/* Modern SVG Search Input Wrap */
+.search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-input-wrap .search-icon {
+  position: absolute;
+  left: 9px;
+  color: var(--text-muted);
+  pointer-events: none;
+  transition: color 0.15s ease;
+}
+
+.search-input-wrap input {
+  background: var(--bg-tertiary);
+  color: #fff;
+  border: 1px solid var(--border-color);
+  padding: 6px 12px 6px 28px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  width: 140px;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: inherit;
+}
+
+.search-input-wrap input:focus {
+  border-color: var(--accent-blue);
+  background: var(--bg-secondary);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+  width: 170px;
+}
+
+.search-input-wrap input:focus + .search-icon,
+.search-input-wrap:focus-within .search-icon {
+  color: var(--accent-blue);
 }
 
 .btn {
@@ -696,19 +749,19 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
-  color: var(--text-primary);
-  font-size: 0.7rem;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-muted);
+  font-size: 0.68rem;
   font-weight: 700;
   cursor: help;
-  margin-left: 6px;
+  margin-left: 2px;
   transition: all 0.15s ease;
   position: relative;
   flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .tip-q:hover {
