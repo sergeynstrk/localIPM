@@ -1368,11 +1368,192 @@ body {
   background: #f1f5f9;
 }
 
-/* Fluent 2 Style adjustments */
+/* ==========================================================================
+   STYLE MODES (Linear Bento, Microsoft Fluent 2, Classic Base)
+   ========================================================================== */
+
+/* 1. Linear / High-Density Utility (Dark Mode Luxury & Bento) */
+[data-style="linear"] {
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --bg-primary: #08090d;
+  --bg-secondary: #0d1117;
+  --bg-tertiary: #161b22;
+  --border-color: rgba(255, 255, 255, 0.09);
+  --accent-blue: #6366f1;
+  --accent-blue-hover: #4f46e5;
+  --accent-blue-glow: rgba(99, 102, 241, 0.4);
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-md: 0 8px 24px -4px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+[data-style="linear"] .btn-primary {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  box-shadow: 0 0 14px rgba(99, 102, 241, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+[data-style="linear"] .card,
+[data-style="linear"] .modal-window {
+  background: rgba(13, 17, 23, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+[data-style="linear"] .task-row.selected {
+  background: rgba(99, 102, 241, 0.18) !important;
+  border-left: 3px solid #6366f1;
+}
+
+/* 2. Microsoft Fluent 2 Web (Matching reference: Soft Mica, Clean Segoe UI, Precise Underline) */
 [data-style="fluent"] {
-  --radius-xs: 2px;
+  --font-family: "Segoe UI Variable Text", "Segoe UI", Selawik, system-ui, -apple-system, sans-serif;
+  --radius-xs: 3px;
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
-  --radius-xl: 10px;
+  --radius-xl: 12px;
+  --accent-blue: #0f6cbd;
+  --accent-blue-hover: #115ea3;
+  --accent-blue-glow: rgba(15, 108, 189, 0.25);
 }
+
+/* Fluent 2 - Light Mode (Reference: Clean Neutral Grays & Mica Soft Shadows) */
+[data-style="fluent"][data-theme="light"],
+[data-style="fluent"]:not([data-theme="dark"]) {
+  --bg-primary: #f3f3f3;
+  --bg-secondary: #fbfbfb;
+  --bg-tertiary: #f0f0f0;
+  --bg-hover: #e5e5e5;
+  --border-color: #e0e0e0;
+  --border-subtle: #eaeaea;
+  --text-primary: #242424;
+  --text-secondary: #424242;
+  --text-muted: #616161;
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.04), 0 0 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.06), 0 0 2px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.12), 0 0 2px rgba(0, 0, 0, 0.14);
+}
+
+/* Fluent 2 - Dark Mode (Reference: Solid Carbon Acrylic & High Contrast Accents) */
+[data-style="fluent"][data-theme="dark"] {
+  --bg-primary: #1f1f1f;
+  --bg-secondary: #292929;
+  --bg-tertiary: #333333;
+  --bg-hover: #3d3d3d;
+  --border-color: #3d3d3d;
+  --border-subtle: #333333;
+  --text-primary: #ffffff;
+  --text-secondary: #e0e0e0;
+  --text-muted: #adadad;
+  --accent-blue: #479ef5;
+  --accent-blue-hover: #62abf7;
+  --accent-blue-glow: rgba(71, 158, 245, 0.3);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3), 0 0 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 16px rgba(0, 0, 0, 0.45), 0 0 2px rgba(0, 0, 0, 0.4);
+}
+
+[data-style="fluent"] .app-header {
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+[data-style="fluent"] .btn {
+  border-radius: 4px;
+  font-weight: 500;
+  height: 30px;
+  font-size: 0.82rem;
+  border: 1px solid var(--border-color);
+}
+
+[data-style="fluent"] .btn-primary {
+  background: var(--accent-blue);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+}
+
+[data-style="fluent"] .btn-primary:hover {
+  background: var(--accent-blue-hover);
+}
+
+[data-style="fluent"] .modal-window {
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
+}
+
+[data-style="fluent"] .task-table-header {
+  font-family: "Segoe UI Variable Text", "Segoe UI", sans-serif;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 0.82rem;
+  background: var(--bg-secondary);
+}
+
+[data-style="fluent"] .task-row.selected {
+  background: rgba(15, 108, 189, 0.12) !important;
+  box-shadow: inset 3px 0 0 var(--accent-blue);
+}
+
+[data-style="fluent"] input[type="text"],
+[data-style="fluent"] input[type="date"],
+[data-style="fluent"] input[type="number"],
+[data-style="fluent"] select {
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  border-bottom: 2px solid #747474;
+  transition: all 0.12s ease;
+}
+
+[data-style="fluent"] input:focus,
+[data-style="fluent"] select:focus {
+  border-bottom-color: var(--accent-blue) !important;
+  box-shadow: none !important;
+  outline: none;
+}
+
+/* 3. Базовый (Classic LocalPM) */
+[data-style="classic"] {
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --accent-blue: #2563eb;
+  --accent-blue-hover: #1d4ed8;
+  --border-color: rgba(255, 255, 255, 0.14);
+}
+
+[data-style="classic"][data-theme="light"],
+[data-style="classic"]:not([data-theme="dark"]) {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --border-color: #cbd5e1;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+}
+
+[data-style="classic"] .task-table-header {
+  background: var(--bg-tertiary);
+  border-bottom: 2px solid var(--border-color);
+  text-transform: none;
+  font-size: 0.82rem;
+}
+
+[data-style="classic"] .task-row {
+  border-bottom: 1px solid var(--border-color);
+}
+
+[data-style="classic"] .btn {
+  border-radius: 3px;
+  border: 1px solid var(--border-color);
+}
+

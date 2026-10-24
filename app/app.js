@@ -32,9 +32,11 @@ class AppController {
       redo: []
     };
 
-    // UI Theme & Style
+    // UI Theme & Style: 'linear' (Linear Bento), 'fluent' (Microsoft Fluent 2), 'classic' (Базовый)
     this.theme = localStorage.getItem('localpm_theme') || 'auto';
-    this.uiStyle = localStorage.getItem('localpm_style') || 'bento';
+    let savedStyle = localStorage.getItem('localpm_style') || 'linear';
+    if (savedStyle === 'bento') savedStyle = 'linear';
+    this.uiStyle = savedStyle;
   }
 
   async init() {
@@ -454,6 +456,32 @@ class AppController {
         this.applyTheme();
       });
     }
+
+    // Appearance & Style Modal
+    document.getElementById('btn-open-settings')?.addEventListener('click', () => {
+      const radio = document.querySelector(`input[name="ui-style-radio"][value="${this.uiStyle}"]`);
+      if (radio) radio.checked = true;
+      const themeSelect = document.getElementById('modal-theme-select');
+      if (themeSelect) themeSelect.value = this.theme;
+      this.openModal('modal-appearance');
+    });
+
+    document.getElementById('btn-save-appearance')?.addEventListener('click', () => {
+      const selectedRadio = document.querySelector('input[name="ui-style-radio"]:checked');
+      if (selectedRadio) {
+        this.uiStyle = selectedRadio.value;
+        localStorage.setItem('localpm_style', this.uiStyle);
+      }
+      const themeSelect = document.getElementById('modal-theme-select');
+      if (themeSelect) {
+        this.theme = themeSelect.value;
+        localStorage.setItem('localpm_theme', this.theme);
+        if (selTheme) selTheme.value = this.theme;
+      }
+      this.applyTheme();
+      this.closeModal('modal-appearance');
+      this.showToast('Стиль оформления успешно применён', 'success');
+    });
 
     // Test Runner
     document.getElementById('btn-run-tests')?.addEventListener('click', () => this.runTestSuite());
