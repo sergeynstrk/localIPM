@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles/app.css?v=2.1.1">
-  <link rel="stylesheet" href="./styles/print.css?v=2.1.1">
+  <link rel="stylesheet" href="./styles/app.css?v=2.1.2">
+  <link rel="stylesheet" href="./styles/print.css?v=2.1.2">
   <script src="./vendor/xlsx.full.min.js"></script>
 </head>
 <body>
@@ -26,14 +26,26 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
       </button>
       <span>LocalPM</span>
-      <span class="logo-badge">v2.1.1</span>
+      <span class="logo-badge">v2.1.2</span>
       <span id="current-project-badge" style="font-size: 0.85rem; font-weight: normal; color: #94a3b8; margin-left: 8px;"></span>
       <div class="db-chip" id="db-chip" title="Управление файлом базы данных localpm-data.json">
         ● БД: проверка…
       </div>
     </div>
     <div class="header-actions">
-      <!-- Display Style & Theme Selector -->
+      <button class="btn btn-sm btn-primary" id="btn-new-project">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        Новый проект
+      </button>
+      <div class="header-divider"></div>
+      <button class="btn btn-sm" id="btn-import-workspace" title="Импорт резервной копии всех проектов">Импорт</button>
+      <button class="btn btn-sm" id="btn-export-workspace" title="Экспорт резервной копии всех проектов">Экспорт</button>
+      <input type="file" id="input-import-workspace" accept=".json" style="display: none;">
+      <div class="header-divider"></div>
+      <button class="btn btn-sm" id="btn-run-tests" title="Запустить встроенный комплекс тестов">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        Тесты
+      </button>
       <button class="btn btn-sm" id="btn-open-settings" title="Настройки оформления и стиля интерфейса">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Стиль
@@ -43,14 +55,6 @@
         <option value="dark">Тема: Тёмная</option>
         <option value="light">Тема: Светлая</option>
       </select>
-      <button class="btn btn-sm" id="btn-run-tests" title="Запустить встроенный комплекс тестов (25+ проверок)">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-        Тесты
-      </button>
-      <button class="btn btn-sm" id="btn-export-workspace" title="Экспорт рабочего пространства (все проекты)">Экспорт бэкапа</button>
-      <button class="btn btn-sm" id="btn-import-workspace" title="Импорт рабочего пространства">Импорт бэкапа</button>
-      <input type="file" id="input-import-workspace" accept=".json" style="display: none;">
-      <button class="btn btn-sm btn-primary" id="btn-new-project">+ Новый проект</button>
     </div>
   </header>
 
@@ -75,7 +79,7 @@
     <main class="main-viewport">
       <!-- What-If Sandbox Mode Banner -->
       <div class="sandbox-banner" id="sandbox-banner">
-        <span>⚡ <b>Режим «Что-если» активен:</b> Любые изменения временные и не влияют на утверждённый базовый план проекта.</span>
+        <span><b>Режим «Что-если» активен:</b> Любые изменения временные и не влияют на утверждённый базовый план проекта.</span>
         <div style="display: flex; gap: 8px;">
           <button class="btn btn-sm btn-primary" id="btn-sandbox-apply" style="background: #10b981; border-color: #10b981;">Принять изменения</button>
           <button class="btn btn-sm" id="btn-sandbox-reset" style="background: rgba(0,0,0,0.3); color: #fff;">Сбросить сценарий</button>
@@ -130,7 +134,7 @@
         <!-- Planning Mode & Baseline Group (D-08, D-11) -->
         <div class="toolbar-group">
           <button class="btn btn-sm" id="btn-set-auto" title="Автоматическое планирование CPM (по умолчанию)">Автоплан</button>
-          <button class="btn btn-sm" id="btn-set-manual" title="Ручное планирование: даты задачи фиксируются">Ручной ✋</button>
+          <button class="btn btn-sm" id="btn-set-manual" title="Ручное планирование: даты задачи фиксируются">Ручной</button>
           <button class="btn btn-sm" id="btn-save-baseline" title="Зафиксировать базовый план проекта">Базовый</button>
           <button class="btn btn-sm" id="btn-autofit-cols" title="Автоматическая ширина колонок по содержимому (D-11)">Автоширина</button>
         </div>
@@ -254,7 +258,7 @@
       <!-- Resource Heatmap Panel (Collapsible) -->
       <div class="resource-panel" id="resource-panel">
         <div class="resource-panel-header">
-          <span>👥 Загрузка и балансировка исполнителей</span>
+          <span>Загрузка и балансировка исполнителей</span>
           <button class="btn btn-sm" id="btn-close-resources" style="padding: 2px 6px; font-size: 0.7rem;">✕ Закрыть</button>
         </div>
         <div class="resource-list" id="resource-list-el">
@@ -291,7 +295,7 @@
   <div class="modal-overlay" id="modal-shortcuts">
     <div class="modal-window" style="width: 520px;">
       <div class="modal-header">
-        <span>⌨️ Горячие клавиши LocalPM</span>
+        <span>Горячие клавиши LocalPM</span>
         <button class="btn btn-sm" onclick="app.closeModal('modal-shortcuts')">✕</button>
       </div>
       <div class="modal-body">
@@ -358,13 +362,13 @@
   <div class="modal-overlay" id="modal-import-hub">
     <div class="modal-window" style="width: 720px;">
       <div class="modal-header">
-        <span>📥 Центр импорта данных</span>
+        <span>Центр импорта данных</span>
         <button class="btn btn-sm" onclick="app.closeModal('modal-import-hub')">✕</button>
       </div>
       <div class="modal-tabs-header">
-        <button class="modal-tab-btn active" data-tab-target="tab-import-excel">📊 Excel / CSV</button>
-        <button class="modal-tab-btn" data-tab-target="tab-import-tsv">📋 Буфер обмена (TSV)</button>
-        <button class="modal-tab-btn" data-tab-target="tab-import-peer">📦 Пакет от коллеги (*.lpmproject)</button>
+        <button class="modal-tab-btn active" data-tab-target="tab-import-excel">Excel / CSV</button>
+        <button class="modal-tab-btn" data-tab-target="tab-import-tsv">Буфер обмена (TSV)</button>
+        <button class="modal-tab-btn" data-tab-target="tab-import-peer">Пакет от коллеги (*.lpmproject)</button>
       </div>
       <div class="modal-body">
         <!-- Tab 1: Excel File -->
@@ -416,13 +420,13 @@
   <div class="modal-overlay" id="modal-export-hub">
     <div class="modal-window" style="width: 680px;">
       <div class="modal-header">
-        <span>📤 Центр выгрузки и отчётности</span>
+        <span>Центр выгрузки и отчётности</span>
         <button class="btn btn-sm" onclick="app.closeModal('modal-export-hub')">✕</button>
       </div>
       <div class="modal-tabs-header">
-        <button class="modal-tab-btn active" data-tab-target="tab-export-report">🖨️ Отчёт для руководства</button>
-        <button class="modal-tab-btn" data-tab-target="tab-export-data">📊 Таблица Excel (.xlsx)</button>
-        <button class="modal-tab-btn" data-tab-target="tab-export-peer">📦 Передача коллеге (*.lpmproject)</button>
+        <button class="modal-tab-btn active" data-tab-target="tab-export-report">Отчёт для руководства</button>
+        <button class="modal-tab-btn" data-tab-target="tab-export-data">Таблица Excel (.xlsx)</button>
+        <button class="modal-tab-btn" data-tab-target="tab-export-peer">Передача коллеге (*.lpmproject)</button>
       </div>
       <div class="modal-body">
         <!-- Tab 1: Executive Report -->
@@ -432,10 +436,10 @@
           </p>
           <div style="display: flex; gap: 12px;">
             <button class="btn btn-primary" id="btn-export-pdf" style="flex: 1; justify-content: center;">
-              📄 Распечатать / Сохранить в PDF (A4/A3)
+              Распечатать / Сохранить в PDF (A4/A3)
             </button>
             <button class="btn" id="btn-export-png" style="flex: 1; justify-content: center;">
-              🖼️ Скачать диаграмму Ганта как PNG
+              Скачать диаграмму Ганта (PNG)
             </button>
           </div>
         </div>
@@ -446,7 +450,7 @@
             Выгрузка полного реестра задач, связей, резервов времени и критического пути в формат Microsoft Excel (.xlsx).
           </p>
           <button class="btn btn-primary" id="btn-export-excel" style="align-self: flex-start;">
-            📊 Скачать файл Excel (.xlsx)
+            Скачать файл Excel (.xlsx)
           </button>
         </div>
 
@@ -468,8 +472,8 @@
             <textarea id="transfer-comment" rows="2" placeholder="План на согласование..."></textarea>
           </div>
           <div style="display: flex; gap: 8px;">
-            <button class="btn btn-primary" id="btn-do-transfer">📤 Сформировать передачу</button>
-            <button class="btn" id="btn-return-peer">🔄 Оформить возврат автору</button>
+            <button class="btn btn-primary" id="btn-do-transfer">Сформировать передачу</button>
+            <button class="btn" id="btn-return-peer">Оформить возврат автору</button>
           </div>
         </div>
       </div>
@@ -483,7 +487,7 @@
   <div class="modal-overlay" id="modal-health">
     <div class="modal-window" style="width: 680px;">
       <div class="modal-header">
-        <span>🩺 Интеллектуальный аудит расписания (DCMA-14)</span>
+        <span>Интеллектуальный аудит расписания (DCMA-14)</span>
         <button class="btn btn-sm" onclick="app.closeModal('modal-health')">✕</button>
       </div>
       <div class="modal-body">
@@ -559,27 +563,50 @@
             <input type="text" id="card-task-owner" placeholder="Иванов И.И.">
           </div>
         </div>
-        <div style="display: flex; gap: 12px;">
-          <div class="form-group" style="flex: 1;">
-            <label>Форма / Тип отображения</label>
-            <select id="card-task-style" style="background: var(--bg-tertiary); color: #fff; border: 1px solid var(--border-color); padding: 7px 10px; border-radius: var(--radius-sm); font-size: 0.8rem; width: 100%;">
-              <option value="solid">Прямоугольная плашка (по умолчанию)</option>
-              <option value="bracket">Полоска с концами (скоба WBS / фаза)</option>
-              <option value="rounded">Овальная капсула (pill)</option>
-              <option value="milestone">Ромб контрольной точки (веха)</option>
-            </select>
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div class="form-group">
+            <label style="font-weight: 600;">Тип полосы Ганта</label>
+            <input type="hidden" id="card-task-style" value="solid">
+            <div class="shape-picker-grid" id="card-shape-picker">
+              <button type="button" class="shape-picker-btn active" data-style="solid" title="Классическая плашка">
+                <svg width="44" height="14" viewBox="0 0 44 14">
+                  <rect x="1" y="2" width="42" height="10" rx="2" fill="#6366f1" />
+                </svg>
+                <span class="shape-picker-label">Плашка</span>
+              </button>
+              <button type="button" class="shape-picker-btn" data-style="bracket" title="Фаза / Суммарная скоба WBS">
+                <svg width="44" height="14" viewBox="0 0 44 14">
+                  <path d="M2 11 L2 4 L42 4 L42 11 L37 7 L7 7 Z" fill="#38bdf8" />
+                </svg>
+                <span class="shape-picker-label">Скоба</span>
+              </button>
+              <button type="button" class="shape-picker-btn" data-style="rounded" title="Овальная капсула">
+                <svg width="44" height="14" viewBox="0 0 44 14">
+                  <rect x="2" y="2" width="40" height="10" rx="5" fill="#a855f7" />
+                </svg>
+                <span class="shape-picker-label">Капсула</span>
+              </button>
+              <button type="button" class="shape-picker-btn" data-style="milestone" title="Контрольная точка">
+                <svg width="44" height="14" viewBox="0 0 44 14">
+                  <polygon points="22,1 28,7 22,13 16,7" fill="#f43f5e" />
+                </svg>
+                <span class="shape-picker-label">Веха</span>
+              </button>
+            </div>
           </div>
-          <div class="form-group" style="flex: 1;">
-            <label>Цвет панельки</label>
-            <select id="card-task-color" style="background: var(--bg-tertiary); color: #fff; border: 1px solid var(--border-color); padding: 7px 10px; border-radius: var(--radius-sm); font-size: 0.8rem; width: 100%;">
-              <option value="">По умолчанию (Индиго / Красный для Крит.)</option>
-              <option value="blue">🔵 Синий (Индиго/Сапфир)</option>
-              <option value="cyan">💠 Голубой / Cyan</option>
-              <option value="red">🔴 Красный / Crimson</option>
-              <option value="emerald">🟢 Изумрудный / Зелёный</option>
-              <option value="amber">🟠 Янтарный / Оранжевый</option>
-              <option value="purple">🟣 Фиолетовый / Пурпурный</option>
-            </select>
+
+          <div class="form-group">
+            <label style="font-weight: 600;">Цвет полосы</label>
+            <input type="hidden" id="card-task-color" value="">
+            <div class="color-picker-grid" id="card-color-picker">
+              <button type="button" class="color-swatch-btn swatch-default active" data-color="" title="Авто (по критическому пути)"></button>
+              <button type="button" class="color-swatch-btn" data-color="blue" style="background: #3b82f6;" title="Синий"></button>
+              <button type="button" class="color-swatch-btn" data-color="cyan" style="background: #06b6d4;" title="Бирюзовый"></button>
+              <button type="button" class="color-swatch-btn" data-color="emerald" style="background: #10b981;" title="Зеленый"></button>
+              <button type="button" class="color-swatch-btn" data-color="amber" style="background: #f59e0b;" title="Янтарный"></button>
+              <button type="button" class="color-swatch-btn" data-color="purple" style="background: #a855f7;" title="Пурпурный"></button>
+              <button type="button" class="color-swatch-btn" data-color="red" style="background: #ef4444;" title="Красный"></button>
+            </div>
           </div>
         </div>
         <div class="form-group">
@@ -671,7 +698,7 @@
   <div class="modal-overlay" id="modal-appearance">
     <div class="modal-window" style="max-width: 580px;">
       <div class="modal-header">
-        <span>🎨 Настройки оформления и стиля интерфейса</span>
+        <span>Настройки оформления и стиля интерфейса</span>
         <button class="modal-close" onclick="app.closeModal('modal-appearance')">✕</button>
       </div>
       <div class="modal-body">
@@ -741,18 +768,18 @@
 
   <!-- Custom Pro Context Menu -->
   <div id="task-context-menu" class="context-menu" style="display: none; position: fixed; z-index: 1000;">
-    <div class="context-menu-item" data-action="card">📝 Открыть карточку задачи</div>
+    <div class="context-menu-item" data-action="card">Открыть карточку задачи</div>
     <div class="context-menu-separator"></div>
     <div class="context-menu-item" data-action="add-task">+ Добавить задачу ниже (Enter)</div>
-    <div class="context-menu-item" data-action="add-milestone">◆ Добавить веху</div>
-    <div class="context-menu-item" data-action="duplicate">📋 Дублировать задачу (Ctrl+D)</div>
-    <div class="context-menu-item" data-action="group">📁 Объединить в группу</div>
+    <div class="context-menu-item" data-action="add-milestone">Добавить веху</div>
+    <div class="context-menu-item" data-action="duplicate">Дублировать задачу (Ctrl+D)</div>
+    <div class="context-menu-item" data-action="group">Объединить в группу</div>
     <div class="context-menu-separator"></div>
     <div class="context-menu-item" data-action="indent">↳ Сделать подзадачей (Indent)</div>
     <div class="context-menu-item" data-action="outdent">↰ Поднять уровень (Outdent)</div>
-    <div class="context-menu-item" data-action="toggle-manual">✋ Ручной режим / Автоплан</div>
+    <div class="context-menu-item" data-action="toggle-manual">Ручной режим / Автоплан</div>
     <div class="context-menu-separator"></div>
-    <div class="context-menu-item danger" data-action="delete">🗑 Удалить (Delete)</div>
+    <div class="context-menu-item danger" data-action="delete">Удалить (Delete)</div>
   </div>
 
   <!-- Command Palette (Ctrl+K) -->
@@ -773,6 +800,6 @@
     </div>
   </div>
 
-  <script type="module" src="./app/app.js?v=2.1.1"></script>
+  <script type="module" src="./app/app.js?v=2.1.2"></script>
 </body>
 </html>

@@ -443,6 +443,23 @@ class AppController {
     document.getElementById('btn-conflict-use-file')?.addEventListener('click', () => this.sync.resolveConflict('file'));
     document.getElementById('btn-conflict-use-local')?.addEventListener('click', () => this.sync.resolveConflict('local'));
 
+    // Visual Shape & Color Swatch Pickers in Task Card Modal
+    document.querySelectorAll('#card-shape-picker .shape-picker-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#card-shape-picker .shape-picker-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('card-task-style').value = btn.getAttribute('data-style');
+      });
+    });
+
+    document.querySelectorAll('#card-color-picker .color-swatch-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#card-color-picker .color-swatch-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('card-task-color').value = btn.getAttribute('data-color');
+      });
+    });
+
     // Theme selector
     const selTheme = document.getElementById('select-theme');
     if (selTheme) {
@@ -1232,7 +1249,7 @@ class AppController {
     }
 
     if (statusTitle) {
-      statusTitle.innerText = score >= 90 ? '✅ План высокого качества (DCMA-14)' : (score >= 70 ? '⚠️ Умеренное качество: есть риски' : '🚨 Низкое качество расписания');
+      statusTitle.innerText = score >= 90 ? 'План высокого качества (DCMA-14)' : (score >= 70 ? 'Умеренное качество: есть риски' : 'Низкое качество расписания');
     }
 
     if (summary) {
@@ -1302,7 +1319,7 @@ class AppController {
     });
 
     if (ownerLoad.size === 0) {
-      listEl.innerHTML = '<div style="color: #94a3b8; font-size: 0.8rem; padding: 12px;">Укажите ответственных в карточке задачи (✏️ Изменить) для расчета балансировки ресурсов.</div>';
+      listEl.innerHTML = '<div style="color: #94a3b8; font-size: 0.8rem; padding: 12px;">Укажите ответственных в карточке задачи (Изменить) для расчета балансировки ресурсов.</div>';
       return;
     }
 
@@ -1357,7 +1374,7 @@ class AppController {
           <div class="empty-state-desc">Создайте первую задачу вручную или загрузите готовый план из Excel / TSV.</div>
           <div style="display: flex; gap: 10px;">
             <button class="btn btn-primary btn-sm" id="btn-empty-add-task">+ Добавить задачу</button>
-            <button class="btn btn-sm" id="btn-empty-import">📥 Импорт Excel</button>
+            <button class="btn btn-sm" id="btn-empty-import">Импорт Excel</button>
           </div>
         </div>
       `;
@@ -1382,7 +1399,7 @@ class AppController {
         num: () => `<div class="col-num" title="Потяните для изменения порядка задач" draggable="true">${t.external_number || (idx + 1)}</div>`,
         name: () => `<div class="col-name" style="padding-left: ${indentPx + 12}px; display: flex; align-items: center;">
           ${t.is_milestone ? '<span class="milestone-badge" title="Контрольная точка (веха)"></span>' : ''}
-          ${t.is_manual ? '<span style="margin-right: 6px; font-size: 0.85rem;" title="Ручное планирование (даты зафиксированы)">✋</span>' : ''}
+          ${t.is_manual ? '<span style="margin-right: 6px; font-size: 0.7rem; padding: 1px 4px; border-radius: 3px; background: rgba(245, 158, 11, 0.2); color: #f59e0b; font-weight: 600;" title="Ручное планирование (даты зафиксированы)">MAN</span>' : ''}
           <input type="text" value="${t.name}" data-field="name" data-id="${t.id}">
         </div>`,
         duration: () => `<div class="col-dur">
@@ -1928,8 +1945,20 @@ class AppController {
     document.getElementById('card-task-owner').value = task.owner || '';
     document.getElementById('card-task-preds').value = predsStr;
     document.getElementById('card-task-note').value = task.notes || '';
-    document.getElementById('card-task-style').value = task.custom_style || (task.is_milestone ? 'milestone' : (task.is_summary ? 'bracket' : 'solid'));
-    document.getElementById('card-task-color').value = task.custom_color || '';
+    const curStyle = task.custom_style || (task.is_milestone ? 'milestone' : (task.is_summary ? 'bracket' : 'solid'));
+    const curColor = task.custom_color || '';
+    document.getElementById('card-task-style').value = curStyle;
+    document.getElementById('card-task-color').value = curColor;
+
+    // Update active state in visual shape buttons
+    document.querySelectorAll('#card-shape-picker .shape-picker-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-style') === curStyle);
+    });
+
+    // Update active state in color swatch buttons
+    document.querySelectorAll('#card-color-picker .color-swatch-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-color') === curColor);
+    });
 
     this.openModal('modal-task-card');
   }
@@ -2319,7 +2348,7 @@ class AppController {
     });
 
     this.recalculateSchedule();
-    this.showToast(isManual ? `Ручной режим ✋ установлен для ${count} задач` : `Автопланирование CPM установлено для ${count} задач`, 'info');
+    this.showToast(isManual ? `Ручной режим установлен для ${count} задач` : `Автопланирование CPM установлено для ${count} задач`, 'info');
   }
 
   handleSaveBaseline() {
@@ -2526,15 +2555,15 @@ class AppController {
     // System Commands
     const commands = [
       { title: '+ Новая задача', desc: 'Создать стандартную задачу проекта', action: () => this.handleAddTask(false) },
-      { title: '◆ Новая веха', desc: 'Создать контрольную точку с длительностью 0 дней', action: () => this.handleAddTask(true) },
-      { title: '📁 Создать суммарную группу', desc: 'Сгруппировать задачи в этап WBS', action: () => this.handleCreateGroup() },
-      { title: '🔍 Вписать весь проект в экран', desc: 'Оптимизировать масштаб Ганта под все даты', action: () => { this.gantt.fitToScreen(); this.showToast('Вписано в экран', 'info'); } },
-      { title: '📅 Перейти к сегодняшнему дню', desc: 'Центрировать таймлайн на линии Сегодня', action: () => { this.gantt.jumpToToday(); this.showToast('Переход к сегодня', 'info'); } },
-      { title: '📊 Оптимизировать ширину колонок', desc: 'Автоподбор ширины под текст', action: () => this.handleAutoFitColumns() },
-      { title: '🎨 Настройки оформления и стилей', desc: 'Linear, Fluent 2, GitHub Primer, Классический', action: () => this.openModal('modal-appearance') },
-      { title: '🐙 Стиль: GitHub Primer UI', desc: 'Переключить тему на официальный стиль GitHub', action: () => { this.uiStyle = 'github'; localStorage.setItem('localpm_style', 'github'); this.applyTheme(); this.showToast('Установлен стиль GitHub Primer UI', 'info'); } },
-      { title: '📥 Экспорт в Excel (XLSX)', desc: 'Нативная генерация таблицы OOXML', action: () => this.handleExportExcel() },
-      { title: '📋 Экспорт резервной копии', desc: 'Полный бэкап рабочего пространства в JSON', action: () => this.handleExportWorkspace() }
+      { title: 'Новая веха', desc: 'Создать контрольную точку с длительностью 0 дней', action: () => this.handleAddTask(true) },
+      { title: 'Создать суммарную группу', desc: 'Сгруппировать задачи в этап WBS', action: () => this.handleCreateGroup() },
+      { title: 'Вписать весь проект в экран', desc: 'Оптимизировать масштаб Ганта под все даты', action: () => { this.gantt.fitToScreen(); this.showToast('Вписано в экран', 'info'); } },
+      { title: 'Перейти к сегодняшнему дню', desc: 'Центрировать таймлайн на линии Сегодня', action: () => { this.gantt.jumpToToday(); this.showToast('Переход к сегодня', 'info'); } },
+      { title: 'Оптимизировать ширину колонок', desc: 'Автоподбор ширины под текст', action: () => this.handleAutoFitColumns() },
+      { title: 'Настройки оформления и стилей', desc: 'Linear, Fluent 2, GitHub Primer, Классический', action: () => this.openModal('modal-appearance') },
+      { title: 'Стиль: GitHub Primer UI', desc: 'Переключить тему на официальный стиль GitHub', action: () => { this.uiStyle = 'github'; localStorage.setItem('localpm_style', 'github'); this.applyTheme(); this.showToast('Установлен стиль GitHub Primer UI', 'info'); } },
+      { title: 'Экспорт в Excel (XLSX)', desc: 'Нативная генерация таблицы OOXML', action: () => this.handleExportExcel() },
+      { title: 'Экспорт резервной копии', desc: 'Полный бэкап рабочего пространства в JSON', action: () => this.handleExportWorkspace() }
     ];
 
     commands.forEach(cmd => {
