@@ -11,7 +11,7 @@ import { WbsUtils } from './core/wbs.js';
 import { CpmEngine } from './core/cpm.js';
 import { XlsxIO } from './io/xlsx-io.js';
 import { TransferUtils } from './io/transfer.js';
-import { GanttChart } from './ui/gantt.js';
+import { GanttChart } from './ui/gantt.js?v=2.1.3';
 
 class AppController {
   constructor() {
