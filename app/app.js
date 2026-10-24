@@ -1096,6 +1096,7 @@ class AppController {
     document.getElementById('metric-tasks-count').innerText = this.tasks.length;
     document.getElementById('metric-critical-count').innerText = cpmResult.criticalPathCount || 0;
     document.getElementById('metric-finish-date').innerText = DateUtils.formatRU(cpmResult.projectFinishDate);
+    this.updateSelectionMetrics();
 
     // Update health badge on toolbar
     const healthBadge = document.getElementById('toolbar-health-badge');
@@ -1363,7 +1364,8 @@ class AppController {
     this.tasks.forEach((t, idx) => {
       const row = document.createElement('div');
       const isChild = (t.level || 0) > 0 || !!t.parent_id;
-      row.className = `task-row ${t.is_summary ? 'summary' : ''} ${t.is_critical ? 'critical' : ''} ${isChild ? 'is-child-task' : ''} ${this.selectedTaskId === t.id ? 'selected' : ''}`;
+      const isSelected = (this.selectedIds && this.selectedIds.includes(t.id)) || this.selectedTaskId === t.id;
+      row.className = `task-row ${t.is_summary ? 'summary' : ''} ${t.is_critical ? 'critical' : ''} ${isChild ? 'is-child-task' : ''} ${isSelected ? 'selected' : ''}`;
       
       // Clean proportional tree indent: 24px per level without unicode symbols
       const indentPx = (t.level || 0) * 24;
@@ -1458,13 +1460,37 @@ class AppController {
       });
 
       row.addEventListener('click', (e) => {
-        if (this.selectedTaskId !== t.id) {
+        // Multi-selection (Shift+Click, Ctrl/Cmd+Click)
+        if (e.ctrlKey || e.metaKey) {
+          const idx = this.selectedIds.indexOf(t.id);
+          if (idx >= 0) {
+            this.selectedIds.splice(idx, 1);
+            if (this.selectedTaskId === t.id) {
+              this.selectedTaskId = this.selectedIds[0] || null;
+            }
+          } else {
+            this.selectedIds.push(t.id);
+            this.selectedTaskId = t.id;
+          }
+          this.anchorId = t.id;
+        } else if (e.shiftKey && this.anchorId) {
+          const allIds = this.tasks.map(item => item.id);
+          const a = allIds.indexOf(this.anchorId);
+          const b = allIds.indexOf(t.id);
+          if (a >= 0 && b >= 0) {
+            const [start, end] = a < b ? [a, b] : [b, a];
+            this.selectedIds = allIds.slice(start, end + 1);
+            this.selectedTaskId = t.id;
+          }
+        } else {
           this.selectedTaskId = t.id;
-          this.gantt.selectedTaskId = t.id;
-          document.querySelectorAll('.task-row').forEach(r => r.classList.remove('selected'));
-          row.classList.add('selected');
-          this.gantt.render();
+          this.selectedIds = [t.id];
+          this.anchorId = t.id;
         }
+
+        this.gantt.selectedTaskId = this.selectedTaskId;
+        this.updateSelectionUI();
+        this.gantt.render();
       });
 
       // Double-click row to open Task Card modal (Enterprise UX standard)
@@ -1478,11 +1504,12 @@ class AppController {
       // Also select when any input is focused
       row.querySelectorAll('input').forEach(inp => {
         inp.addEventListener('focus', () => {
-          if (this.selectedTaskId !== t.id) {
+          if (!this.selectedIds.includes(t.id)) {
             this.selectedTaskId = t.id;
+            this.selectedIds = [t.id];
+            this.anchorId = t.id;
             this.gantt.selectedTaskId = t.id;
-            document.querySelectorAll('.task-row').forEach(r => r.classList.remove('selected'));
-            row.classList.add('selected');
+            this.updateSelectionUI();
             this.gantt.render();
           }
         });
@@ -1498,13 +1525,14 @@ class AppController {
           if (e.key === 'Enter') {
             e.preventDefault();
             inp.blur();
-            // Move to same field in next row, or create new task if at bottom
+            // Move to same field in next row, or focus ghost input if at bottom
             const nextRow = row.nextElementSibling;
             if (nextRow && !nextRow.classList.contains('ghost-row')) {
               const targetInp = nextRow.querySelector(`input[data-field="${currentField}"]`);
               if (targetInp) targetInp.focus();
             } else {
-              this.handleAddTask(false);
+              const ghost = document.querySelector('input[data-role="ghost-task-input"]');
+              if (ghost) ghost.focus();
             }
           } else if (e.key === 'ArrowDown') {
             const nextRow = row.nextElementSibling;
@@ -1586,9 +1614,13 @@ class AppController {
 
     const ghostInput = ghostRow.querySelector('input[data-role="ghost-task-input"]');
     if (ghostInput) {
+      let isCommitting = false;
       const commitGhostTask = () => {
+        if (isCommitting) return;
         const val = ghostInput.value.trim();
         if (val) {
+          isCommitting = true;
+          ghostInput.value = '';
           const isMilestone = val.startsWith('◆') || val.startsWith('*');
           const cleanName = val.replace(/^[◆*]\s*/, '');
           const newId = `task-${Date.now()}`;
@@ -1605,10 +1637,13 @@ class AppController {
           };
           this.tasks.push(newTask);
           this.selectedTaskId = newId;
+          this.selectedIds = [newId];
+          this.anchorId = newId;
           this.recalculateSchedule();
           setTimeout(() => {
             const nextGhost = document.querySelector('input[data-role="ghost-task-input"]');
             if (nextGhost) nextGhost.focus();
+            isCommitting = false;
           }, 60);
         }
       };
@@ -1708,18 +1743,56 @@ class AppController {
     }, 50);
   }
 
+  updateSelectionUI() {
+    const selSet = new Set(this.selectedIds && this.selectedIds.length > 0 ? this.selectedIds : (this.selectedTaskId ? [this.selectedTaskId] : []));
+    document.querySelectorAll('.task-row').forEach(r => {
+      const id = r.dataset.taskId;
+      if (id && selSet.has(id)) {
+        r.classList.add('selected');
+      } else {
+        r.classList.remove('selected');
+      }
+    });
+    this.updateSelectionMetrics();
+  }
+
+  updateSelectionMetrics() {
+    const count = this.selectedIds ? this.selectedIds.length : (this.selectedTaskId ? 1 : 0);
+    const wrap = document.getElementById('metric-selected-wrap');
+    const el = document.getElementById('metric-selected-count');
+    if (wrap && el) {
+      if (count > 1) {
+        el.innerText = count;
+        wrap.style.display = 'inline';
+      } else {
+        wrap.style.display = 'none';
+      }
+    }
+  }
+
+  getSelectedTaskIds() {
+    if (this.selectedIds && this.selectedIds.length > 0) {
+      return [...this.selectedIds];
+    }
+    return this.selectedTaskId ? [this.selectedTaskId] : [];
+  }
+
   handleIndent() {
-    if (!this.selectedTaskId) return;
+    const selIds = this.getSelectedTaskIds();
+    if (!selIds.length) return;
     this.pushHistory();
-    this.tasks = WbsUtils.indent(this.tasks, this.selectedTaskId);
+    this.tasks = WbsUtils.indent(this.tasks, selIds);
     this.recalculateSchedule();
+    this.showToast(selIds.length > 1 ? `Уровень +1 для ${selIds.length} задач` : 'Уровень +1', 'info');
   }
 
   handleOutdent() {
-    if (!this.selectedTaskId) return;
+    const selIds = this.getSelectedTaskIds();
+    if (!selIds.length) return;
     this.pushHistory();
-    this.tasks = WbsUtils.outdent(this.tasks, this.selectedTaskId);
+    this.tasks = WbsUtils.outdent(this.tasks, selIds);
     this.recalculateSchedule();
+    this.showToast(selIds.length > 1 ? `Уровень -1 для ${selIds.length} задач` : 'Уровень -1', 'info');
   }
 
   handleDeleteTask() {
@@ -1728,10 +1801,10 @@ class AppController {
       document.activeElement.blur();
     }
 
-    if (!this.selectedTaskId) {
-      // If none selected, default to the last task
+    const selIds = this.getSelectedTaskIds();
+    if (!selIds.length) {
       if (this.tasks.length > 0) {
-        this.selectedTaskId = this.tasks[this.tasks.length - 1].id;
+        selIds.push(this.tasks[this.tasks.length - 1].id);
       } else {
         return;
       }
@@ -1739,66 +1812,91 @@ class AppController {
 
     this.pushHistory();
 
-    const id = this.selectedTaskId;
-    const taskIndex = this.tasks.findIndex(t => t.id === id);
-    
-    // Filter out deleted task and any of its children (with Undo backup)
     const backupTasks = [...this.tasks];
     const backupDeps = [...this.dependencies];
-    const deletedTask = this.tasks.find(t => t.id === id);
+    const toDeleteSet = WbsUtils.subtreeIds(this.tasks, selIds);
 
-    this.tasks = this.tasks.filter(t => t.id !== id && t.parent_id !== id);
-    this.dependencies = this.dependencies.filter(d => d.pred_id !== id && d.succ_id !== id);
+    this.tasks = this.tasks.filter(t => !toDeleteSet.has(t.id));
+    this.dependencies = this.dependencies.filter(d => !toDeleteSet.has(d.pred_id) && !toDeleteSet.has(d.succ_id));
 
     // Re-index sort order
     this.tasks.forEach((t, i) => {
       t.sort_order = i;
     });
 
-    // Pick adjacent task as selected
+    // Select adjacent task
     if (this.tasks.length > 0) {
-      const nextIndex = Math.min(taskIndex, this.tasks.length - 1);
-      this.selectedTaskId = this.tasks[nextIndex >= 0 ? nextIndex : 0].id;
+      this.selectedTaskId = this.tasks[0].id;
+      this.selectedIds = [this.selectedTaskId];
+      this.anchorId = this.selectedTaskId;
     } else {
       this.selectedTaskId = null;
+      this.selectedIds = [];
+      this.anchorId = null;
     }
 
     this.recalculateSchedule();
 
-    this.showToast(`Удалена задача «${deletedTask?.name || 'Задача'}»`, 'warning', 'Отменить', () => {
+    this.showToast(`Удалено задач: ${toDeleteSet.size}`, 'warning', 'Отменить', () => {
       this.tasks = backupTasks;
       this.dependencies = backupDeps;
-      this.selectedTaskId = id;
+      this.selectedTaskId = selIds[0];
+      this.selectedIds = [...selIds];
+      this.anchorId = selIds[0];
       this.recalculateSchedule();
       this.showToast('Удаление отменено', 'info');
     });
   }
 
   handleMoveTask(direction) {
-    if (!this.selectedTaskId) return;
-    const index = this.tasks.findIndex(t => t.id === this.selectedTaskId);
-    if (index < 0) return;
+    const selIds = this.getSelectedTaskIds();
+    if (!selIds.length) return;
 
-    const targetIndex = index + direction;
-    if (targetIndex < 0 || targetIndex >= this.tasks.length) return;
+    // Use applyStructuralMove for robust hierarchical block movement
+    const selSet = new Set(selIds);
+    const roots = this.tasks.filter(t => selSet.has(t.id) && (!t.parent_id || !selSet.has(t.parent_id)));
+    if (!roots.length) return;
+
+    const blockSet = WbsUtils.subtreeIds(this.tasks, roots.map(t => t.id));
+    const flags = this.tasks.map(r => blockSet.has(r.id));
+    const iF = flags.indexOf(true);
+    const iL = flags.lastIndexOf(true);
+    if (iF < 0) return;
+
+    let beforeId = null;
+    if (direction === -1) {
+      let i = iF - 1;
+      while (i >= 0 && blockSet.has(this.tasks[i].id)) i--;
+      if (i < 0) {
+        this.showToast('Блок уже в самом верху', 'info');
+        return;
+      }
+      beforeId = this.tasks[i].id;
+    } else {
+      let i = iL + 1;
+      while (i < this.tasks.length && blockSet.has(this.tasks[i].id)) i++;
+      if (i >= this.tasks.length) {
+        this.showToast('Блок уже в самом конце', 'info');
+        return;
+      }
+      beforeId = this.tasks[i + 1] ? this.tasks[i + 1].id : null;
+    }
 
     this.pushHistory();
+    const targetLevel = this.tasks[iF].level !== undefined ? this.tasks[iF].level : 0;
+    const ok = WbsUtils.applyStructuralMove(
+      { tasks: this.tasks },
+      roots.map(t => t.id),
+      { beforeId, level: targetLevel }
+    );
 
-    // Swap tasks
-    const [moved] = this.tasks.splice(index, 1);
-    this.tasks.splice(targetIndex, 0, moved);
-
-    // Re-index sort order
-    this.tasks.forEach((t, i) => {
-      t.sort_order = i;
-    });
-
-    this.recalculateSchedule();
-
-    setTimeout(() => {
-      const row = document.querySelector(`.task-row.selected`);
-      if (row) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 40);
+    if (ok) {
+      this.recalculateSchedule();
+      setTimeout(() => {
+        const row = document.querySelector(`.task-row.selected`);
+        if (row) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 40);
+    }
   }
 
   handleOpenTaskCard() {
@@ -2151,16 +2249,20 @@ class AppController {
   // --- WBS Grouping & Scheduling Modes (D-03, D-08, D-11, SPEC-LocalPM-003) ---
   handleCreateGroup() {
     if (!this.currentProject) return;
-    const selectedTask = this.tasks.find(t => t.id === this.selectedTaskId);
-    if (!selectedTask) {
-      this.showToast('Выберите задачу для создания родительской группы', 'warning');
+    const selIds = this.getSelectedTaskIds();
+    if (!selIds.length) {
+      this.showToast('Выберите задачи для объединения в этап', 'warning');
       return;
     }
 
+    const selTasks = this.tasks.filter(t => selIds.includes(t.id));
+    if (!selTasks.length) return;
+
     this.pushHistory();
 
-    const parentId = selectedTask.parent_id || null;
-    const taskIndex = this.tasks.findIndex(t => t.id === selectedTask.id);
+    const firstTask = selTasks[0];
+    const parentId = firstTask.parent_id || null;
+    const taskIndex = this.tasks.findIndex(t => t.id === firstTask.id);
     const newGroupId = `group-${Date.now()}`;
 
     const newGroup = {
@@ -2168,39 +2270,51 @@ class AppController {
       external_number: String(taskIndex + 1),
       name: 'Новый этап',
       duration_days: 1,
-      start_date: selectedTask.start_date,
-      finish_date: selectedTask.finish_date,
+      start_date: firstTask.start_date,
+      finish_date: firstTask.finish_date,
       percent_complete: 0,
       parent_id: parentId,
-      level: selectedTask.level || 0,
+      level: firstTask.level || 0,
       is_summary: true,
       sort_order: taskIndex
     };
 
-    // Make current task a child of the newly created group
-    selectedTask.parent_id = newGroupId;
-    selectedTask.level = (newGroup.level || 0) + 1;
+    // Make all selected root tasks children of the newly created group
+    const selSet = new Set(selIds);
+    const roots = this.tasks.filter(t => selSet.has(t.id) && (!t.parent_id || !selSet.has(t.parent_id)));
+    roots.forEach(t => {
+      t.parent_id = newGroupId;
+    });
 
     this.tasks.splice(taskIndex, 0, newGroup);
     this.tasks.forEach((t, i) => { t.sort_order = i; });
 
     this.selectedTaskId = newGroupId;
+    this.selectedIds = [newGroupId];
+    this.anchorId = newGroupId;
     this.recalculateSchedule();
-    this.showToast('Создан суммарный этап «Новый этап»', 'success');
+    this.showToast(`Создан суммарный этап «Новый этап» (${roots.length} задач)`, 'success');
   }
 
   handleSetSchedulingMode(isManual) {
-    if (!this.selectedTaskId) {
-      this.showToast('Выберите задачу для изменения режима планирования', 'warning');
+    const selIds = this.getSelectedTaskIds();
+    if (!selIds.length) {
+      this.showToast('Выберите задачи для изменения режима планирования', 'warning');
       return;
     }
-    const task = this.tasks.find(t => t.id === this.selectedTaskId);
-    if (!task) return;
 
     this.pushHistory();
-    task.is_manual = !!isManual;
+    const selSet = new Set(selIds);
+    let count = 0;
+    this.tasks.forEach(t => {
+      if (selSet.has(t.id)) {
+        t.is_manual = !!isManual;
+        count++;
+      }
+    });
+
     this.recalculateSchedule();
-    this.showToast(isManual ? `Задача «${task.name}»: Ручной режим ✋ (даты зафиксированы)` : `Задача «${task.name}»: Автопланирование CPM`, 'info');
+    this.showToast(isManual ? `Ручной режим ✋ установлен для ${count} задач` : `Автопланирование CPM установлено для ${count} задач`, 'info');
   }
 
   handleSaveBaseline() {

@@ -107,34 +107,81 @@ export const WbsUtils = {
     return flatList;
   },
 
-  // Indent task (make child of previous sibling)
-  indent(tasks, targetTaskId) {
-    const idx = tasks.findIndex(t => t.id === targetTaskId);
-    if (idx <= 0) return tasks; // Cannot indent the very first task
-    const prevTask = tasks[idx - 1];
-    
-    // We make prevTask the parent if they are currently on the same level or prevTask is sibling
+  // Indent task or block of tasks (strictly +1 level step: parent = nearest task above of same level)
+  indent(tasks, targetTaskIds) {
+    if (!tasks || tasks.length === 0) return tasks;
+    const targetIds = Array.isArray(targetTaskIds) ? targetTaskIds : [targetTaskIds];
+    if (targetIds.length === 0) return tasks;
+
+    const selSet = new Set(targetIds);
+    // Find roots of selection (tasks whose parent is not in selection)
+    const roots = tasks.filter(t => selSet.has(t.id) && (!t.parent_id || !selSet.has(t.parent_id)));
+    if (roots.length === 0) return tasks;
+
+    const blockSet = this.subtreeIds(tasks, roots.map(t => t.id));
+    const iF = tasks.findIndex(r => blockSet.has(r.id));
+    if (iF <= 0) return tasks; // Cannot indent topmost row
+
+    const rootLevel = tasks[iF].level !== undefined ? tasks[iF].level : 0;
+    // Look backwards above block for nearest candidate of the SAME level (strict +1 level step)
+    let cand = null;
+    for (let i = iF - 1; i >= 0; i--) {
+      if (!blockSet.has(tasks[i].id) && (tasks[i].level || 0) === rootLevel) {
+        cand = tasks[i];
+        break;
+      }
+    }
+
+    if (!cand) {
+      // If no task on exact same level, cannot indent further (would skip level)
+      return tasks;
+    }
+
+    // Guard against circular hierarchy
+    let cur = cand;
+    let guard = 0;
+    while (cur && guard++ < 60) {
+      if (blockSet.has(cur.id)) return tasks;
+      cur = cur.parent_id ? tasks.find(t => t.id === cur.parent_id) : null;
+    }
+
+    const candId = cand.id;
     return tasks.map(t => {
-      if (t.id === targetTaskId) {
-        return { ...t, parent_id: prevTask.id };
+      if (roots.some(r => r.id === t.id)) {
+        return { ...t, parent_id: candId };
       }
       return t;
     });
   },
 
-  // Outdent task (make child of parent's parent)
-  outdent(tasks, targetTaskId) {
-    const current = tasks.find(t => t.id === targetTaskId);
-    if (!current || !current.parent_id) return tasks;
-    const parent = tasks.find(t => t.id === current.parent_id);
-    const newParentId = parent ? (parent.parent_id || null) : null;
+  // Outdent task or block of tasks (make child of parent's parent, level - 1)
+  outdent(tasks, targetTaskIds) {
+    if (!tasks || tasks.length === 0) return tasks;
+    const targetIds = Array.isArray(targetTaskIds) ? targetTaskIds : [targetTaskIds];
+    if (targetIds.length === 0) return tasks;
 
-    return tasks.map(t => {
-      if (t.id === targetTaskId) {
-        return { ...t, parent_id: newParentId };
+    const selSet = new Set(targetIds);
+    const roots = tasks.filter(t => selSet.has(t.id) && (!t.parent_id || !selSet.has(t.parent_id)));
+    if (roots.length === 0) return tasks;
+
+    const parentMap = new Map();
+    tasks.forEach(t => {
+      if (t.parent_id) {
+        const p = tasks.find(pt => pt.id === t.parent_id);
+        parentMap.set(t.id, p ? (p.parent_id || null) : null);
+      }
+    });
+
+    let moved = false;
+    const res = tasks.map(t => {
+      if (roots.some(r => r.id === t.id) && t.parent_id) {
+        moved = true;
+        return { ...t, parent_id: parentMap.get(t.id) || null };
       }
       return t;
     });
+
+    return moved ? res : tasks;
   },
 
   // Find all descendant IDs of given root task IDs
