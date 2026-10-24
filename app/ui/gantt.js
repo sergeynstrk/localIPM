@@ -402,6 +402,18 @@ export class GanttChart {
       const barH = 20;
       const barY = y + (rHeight - barH) / 2;
 
+      // Baseline bar (Section 11, D-08, grey line under task)
+      if (this.currentProject?.baseline?.dates?.[t.id]) {
+        const base = this.currentProject.baseline.dates[t.id];
+        if (base.start && base.finish) {
+          const bsX = this.dateToX(base.start) - this.scrollX;
+          const bfX = this.dateToX(base.finish) + (this.options.scale === 'day' ? this.options.dayWidth : 0) - this.scrollX;
+          const bw = Math.max(3, bfX - bsX);
+          ctx.fillStyle = '#64748b';
+          ctx.fillRect(bsX, y + rHeight - 6, bw, 3);
+        }
+      }
+
       const isCritical = this.options.showCriticalPath && t.is_critical;
       const customStyle = t.custom_style || (t.is_milestone ? 'milestone' : (t.is_summary ? 'bracket' : 'solid'));
       const customColor = t.custom_color || '';

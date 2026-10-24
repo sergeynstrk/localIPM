@@ -251,6 +251,7 @@ class AppController {
     document.getElementById('btn-add-milestone').addEventListener('click', () => this.handleAddTask(true));
     document.getElementById('btn-indent').addEventListener('click', () => this.handleIndent());
     document.getElementById('btn-outdent').addEventListener('click', () => this.handleOutdent());
+    document.getElementById('btn-create-group')?.addEventListener('click', () => this.handleCreateGroup());
     const btnEditTask = document.getElementById('btn-edit-task');
     if (btnEditTask) btnEditTask.addEventListener('click', () => this.handleOpenTaskCard());
     document.getElementById('btn-move-up').addEventListener('click', () => this.handleMoveTask(-1));
@@ -258,6 +259,12 @@ class AppController {
     const btnSaveCard = document.getElementById('btn-save-task-card');
     if (btnSaveCard) btnSaveCard.addEventListener('click', () => this.handleSaveTaskCard());
     document.getElementById('btn-delete-task').addEventListener('click', () => this.handleDeleteTask());
+
+    // Planning Mode & Baseline buttons (D-08, D-11)
+    document.getElementById('btn-set-auto')?.addEventListener('click', () => this.handleSetSchedulingMode(false));
+    document.getElementById('btn-set-manual')?.addEventListener('click', () => this.handleSetSchedulingMode(true));
+    document.getElementById('btn-save-baseline')?.addEventListener('click', () => this.handleSaveBaseline());
+    document.getElementById('btn-autofit-cols')?.addEventListener('click', () => this.handleAutoFitColumns());
 
     // Task Search & Filter (FR-6.10)
     const searchInput = document.getElementById('task-search-input');
@@ -571,6 +578,100 @@ class AppController {
         }
       });
     }
+
+    // Column Resizing and Drag-and-Drop Reordering (D-04, D-11)
+    this.initColumnInteractions();
+  }
+
+  initColumnInteractions() {
+    let colDragKey = null;
+    let colResizeKey = null;
+    let resizeStartX = 0;
+    let resizeStartW = 0;
+
+    document.addEventListener('pointerdown', (e) => {
+      // 1. Column Resizer (7px right edge)
+      const rz = e.target.closest('.col-rz');
+      if (rz) {
+        e.preventDefault();
+        e.stopPropagation();
+        colResizeKey = rz.dataset.col;
+        const colEl = document.querySelector(`.header-col[data-key="${colResizeKey}"]`);
+        if (colEl) {
+          resizeStartX = e.clientX;
+          resizeStartW = colEl.getBoundingClientRect().width;
+          document.body.style.cursor = 'col-resize';
+        }
+        return;
+      }
+
+      // 2. Column Header Drag for Reordering (D-04)
+      const th = e.target.closest('.header-col[data-key]');
+      if (th && !th.dataset.fixed && e.button === 0) {
+        colDragKey = th.dataset.key;
+      }
+    });
+
+    document.addEventListener('pointermove', (e) => {
+      if (colResizeKey) {
+        const delta = e.clientX - resizeStartX;
+        const newW = Math.max(44, Math.min(640, Math.round(resizeStartW + delta)));
+        const colHeaders = document.querySelectorAll(`.header-col[data-key="${colResizeKey}"]`);
+        colHeaders.forEach(h => h.style.width = `${newW}px`);
+        const rowCells = document.querySelectorAll(`.col-${colResizeKey}`);
+        rowCells.forEach(c => c.style.width = `${newW}px`);
+        return;
+      }
+
+      if (colDragKey) {
+        const headers = [...document.querySelectorAll('.task-table-header .header-col')];
+        headers.forEach(h => {
+          if (h.dataset.key === colDragKey) return;
+          const rect = h.getBoundingClientRect();
+          if (e.clientX >= rect.left && e.clientX <= rect.right) {
+            h.classList.add('col-drop');
+          } else {
+            h.classList.remove('col-drop');
+          }
+        });
+      }
+    });
+
+    document.addEventListener('pointerup', (e) => {
+      if (colResizeKey) {
+        const colEl = document.querySelector(`.header-col[data-key="${colResizeKey}"]`);
+        if (colEl && this.currentProject) {
+          const finalW = Math.round(colEl.getBoundingClientRect().width);
+          this.currentProject.view_settings = this.currentProject.view_settings || {};
+          this.currentProject.view_settings.columnWidths = this.currentProject.view_settings.columnWidths || {};
+          this.currentProject.view_settings.columnWidths[colResizeKey] = finalW;
+        }
+        colResizeKey = null;
+        document.body.style.cursor = '';
+      }
+
+      if (colDragKey) {
+        const targetHeader = document.querySelector('.task-table-header .header-col.col-drop');
+        if (targetHeader && targetHeader.dataset.key && targetHeader.dataset.key !== colDragKey) {
+          const container = document.getElementById('task-table-header-el');
+          const draggedEl = document.querySelector(`.header-col[data-key="${colDragKey}"]`);
+          if (container && draggedEl && targetHeader) {
+            container.insertBefore(draggedEl, targetHeader);
+            
+            // Extract new order from the header DOM
+            const newOrder = [...container.querySelectorAll('.header-col')].map(h => h.dataset.key).filter(Boolean);
+            if (this.currentProject) {
+              this.currentProject.view_settings = this.currentProject.view_settings || {};
+              this.currentProject.view_settings.columnOrder = newOrder;
+            }
+            this.renderTaskTable();
+            this.showToast(`Колонка перемещена`, 'info');
+          }
+        }
+        document.querySelectorAll('.header-col').forEach(h => h.classList.remove('col-drop'));
+        colDragKey = null;
+      }
+    });
   }
 
   openModal(id) {
@@ -1215,22 +1316,33 @@ class AppController {
 
       const treeBranchIcon = isChild ? `<span class="tree-branch-icon" title="Подзадача (WBS)">↳</span>` : '';
 
-      row.innerHTML = `
-        <div class="col-num" title="Потяните для изменения порядка задач" draggable="true">${t.external_number || (idx + 1)}</div>
-        <div class="col-name" style="padding-left: ${indentPx + 8}px; display: flex; align-items: center;">
+      // Dynamic column rendering following current order (D-04, D-05, D-06)
+      const currentOrder = this.currentProject?.view_settings?.columnOrder || ['num', 'name', 'duration', 'start', 'finish', 'preds', 'owner', 'note'];
+      const cellGenerators = {
+        num: () => `<div class="col-num" title="Потяните для изменения порядка задач" draggable="true">${t.external_number || (idx + 1)}</div>`,
+        name: () => `<div class="col-name" style="padding-left: ${indentPx + 8}px; display: flex; align-items: center;">
           ${treeBranchIcon}
           ${t.is_milestone ? '<span class="milestone-badge" title="Контрольная точка (веха)"></span>' : ''}
+          ${t.is_manual ? '<span style="margin-right: 6px; font-size: 0.85rem;" title="Ручное планирование (даты зафиксированы)">✋</span>' : ''}
           <input type="text" value="${t.name}" data-field="name" data-id="${t.id}">
-        </div>
-        <div class="col-dur">
+        </div>`,
+        duration: () => `<div class="col-dur">
           <input type="text" style="text-align: center;" value="${DateUtils.formatDuration(t.duration_days)}" data-field="duration" data-id="${t.id}" ${t.is_summary ? 'disabled' : ''}>
-        </div>
-        <div class="col-start">${DateUtils.formatRU(t.start_date)}</div>
-        <div class="col-finish">${DateUtils.formatRU(t.finish_date)}</div>
-        <div class="col-preds">
+        </div>`,
+        start: () => `<div class="col-start">${DateUtils.formatRU(t.start_date)}</div>`,
+        finish: () => `<div class="col-finish">${DateUtils.formatRU(t.finish_date)}</div>`,
+        preds: () => `<div class="col-preds">
           <input type="text" style="text-align: center;" value="${predsStr}" data-field="preds" data-id="${t.id}">
-        </div>
-      `;
+        </div>`,
+        owner: () => `<div class="col-owner">
+          <input type="text" value="${t.owner || ''}" placeholder="Исполнитель" data-field="owner" data-id="${t.id}">
+        </div>`,
+        note: () => `<div class="col-note">
+          <input type="text" value="${t.note || t.notes || ''}" placeholder="Прим." data-field="note" data-id="${t.id}">
+        </div>`
+      };
+
+      row.innerHTML = currentOrder.map(k => cellGenerators[k] ? cellGenerators[k]() : '').join('');
 
       // Drag and Drop reordering by numbers (FR-6.05)
       const numCol = row.querySelector('.col-num');
@@ -1354,6 +1466,29 @@ class AppController {
       predsInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') predsInput.blur();
       });
+
+      const ownerInput = row.querySelector('input[data-field="owner"]');
+      if (ownerInput) {
+        ownerInput.addEventListener('change', (e) => {
+          t.owner = e.target.value.trim();
+          this.recalculateSchedule();
+        });
+        ownerInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') ownerInput.blur();
+        });
+      }
+
+      const noteInput = row.querySelector('input[data-field="note"]');
+      if (noteInput) {
+        noteInput.addEventListener('change', (e) => {
+          t.note = e.target.value.trim();
+          t.notes = t.note;
+          this.recalculateSchedule();
+        });
+        noteInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') noteInput.blur();
+        });
+      }
 
       bodyEl.appendChild(row);
     });
@@ -1934,6 +2069,152 @@ class AppController {
     } catch (e) {
       alert(`Ошибка чтения резервной копии: ${e.message}`);
     }
+  }
+
+  // --- WBS Grouping & Scheduling Modes (D-03, D-08, D-11, SPEC-LocalPM-003) ---
+  handleCreateGroup() {
+    if (!this.currentProject) return;
+    const selectedTask = this.tasks.find(t => t.id === this.selectedTaskId);
+    if (!selectedTask) {
+      this.showToast('Выберите задачу для создания родительской группы', 'warning');
+      return;
+    }
+
+    this.pushHistory();
+
+    const parentId = selectedTask.parent_id || null;
+    const taskIndex = this.tasks.findIndex(t => t.id === selectedTask.id);
+    const newGroupId = `group-${Date.now()}`;
+
+    const newGroup = {
+      id: newGroupId,
+      external_number: String(taskIndex + 1),
+      name: 'Новый этап',
+      duration_days: 1,
+      start_date: selectedTask.start_date,
+      finish_date: selectedTask.finish_date,
+      percent_complete: 0,
+      parent_id: parentId,
+      level: selectedTask.level || 0,
+      is_summary: true,
+      sort_order: taskIndex
+    };
+
+    // Make current task a child of the newly created group
+    selectedTask.parent_id = newGroupId;
+    selectedTask.level = (newGroup.level || 0) + 1;
+
+    this.tasks.splice(taskIndex, 0, newGroup);
+    this.tasks.forEach((t, i) => { t.sort_order = i; });
+
+    this.selectedTaskId = newGroupId;
+    this.recalculateSchedule();
+    this.showToast('Создан суммарный этап «Новый этап»', 'success');
+  }
+
+  handleSetSchedulingMode(isManual) {
+    if (!this.selectedTaskId) {
+      this.showToast('Выберите задачу для изменения режима планирования', 'warning');
+      return;
+    }
+    const task = this.tasks.find(t => t.id === this.selectedTaskId);
+    if (!task) return;
+
+    this.pushHistory();
+    task.is_manual = !!isManual;
+    this.recalculateSchedule();
+    this.showToast(isManual ? `Задача «${task.name}»: Ручной режим ✋ (даты зафиксированы)` : `Задача «${task.name}»: Автопланирование CPM`, 'info');
+  }
+
+  handleSaveBaseline() {
+    if (!this.currentProject) return;
+    this.pushHistory();
+
+    const dates = {};
+    this.tasks.forEach(t => {
+      dates[t.id] = {
+        start: t.start_date,
+        finish: t.finish_date
+      };
+    });
+
+    this.currentProject.baseline = {
+      savedAt: new Date().toISOString(),
+      dates
+    };
+
+    if (this.gantt) {
+      this.gantt.currentProject = this.currentProject;
+      this.gantt.render();
+    }
+
+    this.recalculateSchedule();
+    this.showToast('Базовый план зафиксирован (серые полосы на Ганте)', 'success');
+  }
+
+  handleAutoFitColumns() {
+    if (!this.currentProject) return;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.font = '12px system-ui, -apple-system, sans-serif';
+
+    const textW = (str) => ctx.measureText(String(str || '')).width;
+    const keys = ['name', 'duration', 'start', 'finish', 'preds', 'owner', 'note'];
+    const titles = {
+      name: 'Задача',
+      duration: 'Длит.',
+      start: 'Начало',
+      finish: 'Конец',
+      preds: 'Связи',
+      owner: 'Ответственный',
+      note: 'Прим.'
+    };
+
+    const taskMap = new Map(this.tasks.map(t => [t.id, t.external_number]));
+    const depsBySucc = new Map();
+    this.dependencies.forEach(d => {
+      if (!depsBySucc.has(d.succ_id)) depsBySucc.set(d.succ_id, []);
+      depsBySucc.get(d.succ_id).push(d);
+    });
+
+    const colWidths = this.currentProject.view_settings?.columnWidths || {};
+
+    keys.forEach(k => {
+      let maxW = textW(titles[k] || k) + 12;
+
+      this.tasks.forEach(t => {
+        let cellText = '';
+        if (k === 'name') {
+          const indent = (t.level || 0) * 20 + 26;
+          maxW = Math.max(maxW, indent + textW(t.name) + 20);
+          return;
+        } else if (k === 'duration') {
+          cellText = DateUtils.formatDuration(t.duration_days);
+        } else if (k === 'start') {
+          cellText = DateUtils.formatRU(t.start_date);
+        } else if (k === 'finish') {
+          cellText = DateUtils.formatRU(t.finish_date);
+        } else if (k === 'preds') {
+          cellText = ValidationUtils.formatPredecessors(depsBySucc.get(t.id) || [], taskMap);
+        } else if (k === 'owner') {
+          cellText = t.owner || '';
+        } else if (k === 'note') {
+          cellText = t.note || t.notes || '';
+        }
+        maxW = Math.max(maxW, textW(cellText));
+      });
+
+      const fitW = Math.max(44, Math.min(640, Math.round(maxW + 24)));
+      colWidths[k] = fitW;
+
+      // Apply to live DOM elements
+      document.querySelectorAll(`.header-col[data-key="${k}"]`).forEach(h => h.style.width = `${fitW}px`);
+      document.querySelectorAll(`.col-${k}`).forEach(c => c.style.width = `${fitW}px`);
+    });
+
+    this.currentProject.view_settings = this.currentProject.view_settings || {};
+    this.currentProject.view_settings.columnWidths = colWidths;
+    this.showToast('Ширина колонок оптимизирована по содержимому', 'info');
   }
 }
 

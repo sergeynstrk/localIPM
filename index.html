@@ -108,6 +108,9 @@
           <button class="btn btn-sm" id="btn-outdent" title="Поднять уровень (WBS)" aria-label="Поднять уровень">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 12H8M12 6l-6 6 6 6"/></svg> Назад
           </button>
+          <button class="btn btn-sm" id="btn-create-group" title="Создать суммарную группу над выделенными задачами" aria-label="Создать группу">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Группа
+          </button>
           <button class="btn btn-sm" id="btn-move-up" title="Вверх (Alt+Up)" aria-label="Переместить задачу вверх">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg>
           </button>
@@ -118,6 +121,14 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           </button>
           <span class="tip-q" data-tooltip="Управление структурой WBS (вложенность) и порядок строк. Задачи также можно перемещать мышью за номер">?</span>
+        </div>
+
+        <!-- Planning Mode & Baseline Group (D-08, D-11) -->
+        <div class="toolbar-group">
+          <button class="btn btn-sm" id="btn-set-auto" title="Автоматическое планирование CPM (по умолчанию)">Автоплан</button>
+          <button class="btn btn-sm" id="btn-set-manual" title="Ручное планирование: даты задачи фиксируются">Ручной ✋</button>
+          <button class="btn btn-sm" id="btn-save-baseline" title="Зафиксировать базовый план проекта">Базовый</button>
+          <button class="btn btn-sm" id="btn-autofit-cols" title="Автоматическая ширина колонок по содержимому (D-11)">Автоширина</button>
         </div>
 
         <!-- Search Group -->
@@ -200,13 +211,15 @@
       <!-- Split View: Left Table, Right Gantt -->
       <div class="split-view" id="main-split-view">
         <div class="table-panel" id="main-table-panel">
-          <div class="task-table-header">
-            <div class="col-num">№</div>
-            <div class="col-name">Задача</div>
-            <div class="col-dur">Длит.</div>
-            <div class="col-start">Начало</div>
-            <div class="col-finish">Конец</div>
-            <div class="col-preds">Связи</div>
+          <div class="task-table-header" id="task-table-header-el">
+            <div class="header-col col-num" data-key="num" data-fixed="1">№</div>
+            <div class="header-col col-name" data-key="name" draggable="true">Задача<span class="col-rz" data-col="name"></span></div>
+            <div class="header-col col-dur" data-key="duration" draggable="true">Длит.<span class="col-rz" data-col="duration"></span></div>
+            <div class="header-col col-start" data-key="start" draggable="true">Начало<span class="col-rz" data-col="start"></span></div>
+            <div class="header-col col-finish" data-key="finish" draggable="true">Конец<span class="col-rz" data-col="finish"></span></div>
+            <div class="header-col col-preds" data-key="preds" draggable="true">Связи<span class="col-rz" data-col="preds"></span></div>
+            <div class="header-col col-owner" data-key="owner" draggable="true">Ответственный<span class="col-rz" data-col="owner"></span></div>
+            <div class="header-col col-note" data-key="note" draggable="true">Прим.<span class="col-rz" data-col="note"></span></div>
           </div>
           <div class="task-table-body" id="task-table-body-el">
             <!-- Rendered by JS -->
