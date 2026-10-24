@@ -2526,8 +2526,8 @@ class AppController {
       { title: '🔍 Вписать весь проект в экран', desc: 'Оптимизировать масштаб Ганта под все даты', action: () => { this.gantt.fitToScreen(); this.showToast('Вписано в экран', 'info'); } },
       { title: '📅 Перейти к сегодняшнему дню', desc: 'Центрировать таймлайн на линии Сегодня', action: () => { this.gantt.jumpToToday(); this.showToast('Переход к сегодня', 'info'); } },
       { title: '📊 Оптимизировать ширину колонок', desc: 'Автоподбор ширины под текст', action: () => this.handleAutoFitColumns() },
-      { title: '💾 Сохранить базовый план', desc: 'Сделать снимок сроков проекта', action: () => this.handleSaveBaseline() },
-      { title: '🎨 Настройки оформления и стилей', desc: 'Linear, Fluent 2, Классический', action: () => this.openModal('modal-appearance') },
+      { title: '🎨 Настройки оформления и стилей', desc: 'Linear, Fluent 2, GitHub Primer, Классический', action: () => this.openModal('modal-appearance') },
+      { title: '🐙 Стиль: GitHub Primer UI', desc: 'Переключить тему на официальный стиль GitHub', action: () => { this.uiStyle = 'github'; localStorage.setItem('localpm_style', 'github'); this.applyTheme(); this.showToast('Установлен стиль GitHub Primer UI', 'info'); } },
       { title: '📥 Экспорт в Excel (XLSX)', desc: 'Нативная генерация таблицы OOXML', action: () => this.handleExportExcel() },
       { title: '📋 Экспорт резервной копии', desc: 'Полный бэкап рабочего пространства в JSON', action: () => this.handleExportWorkspace() }
     ];

@@ -1293,7 +1293,12 @@ body {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar (Cross-browser: Firefox + WebKit/Blink) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #374151 transparent;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -1565,6 +1570,189 @@ body {
 [data-style="classic"] .btn {
   border-radius: 3px;
   border: 1px solid var(--border-color);
+}
+
+/* 4. GitHub Primer Design System (Dark & Light) */
+[data-style="github"] {
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --accent-green: #238636;
+  --accent-green-hover: #2ea043;
+  --accent-blue: #1f6feb;
+  --accent-blue-hover: #388bfd;
+  --accent-purple: #8957e5;
+}
+
+/* GitHub Dark Default (Dimmed Dark / Canvas default) */
+[data-style="github"][data-theme="dark"],
+[data-style="github"]:not([data-theme="light"]) {
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-tertiary: #21262d;
+  --bg-hover: #30363d;
+  --border-color: #30363d;
+  --border-subtle: #21262d;
+  --text-primary: #f0f6fc;
+  --text-secondary: #c9d1d9;
+  --text-muted: #8b949e;
+  --shadow-sm: 0 0 transparent;
+  --shadow-md: 0 3px 6px #010409;
+  --shadow-lg: 0 8px 24px #010409;
+}
+
+/* GitHub Light (Primer Light Canvas) */
+[data-style="github"][data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f6f8fa;
+  --bg-tertiary: #eaeef2;
+  --bg-hover: #e1e4e8;
+  --border-color: #d0d7de;
+  --border-subtle: #eaeef2;
+  --text-primary: #1f2328;
+  --text-secondary: #424a53;
+  --text-muted: #656d76;
+  --shadow-sm: 0 1px 0 rgba(31, 35, 40, 0.04);
+  --shadow-md: 0 3px 6px rgba(140, 149, 159, 0.15);
+  --shadow-lg: 0 8px 24px rgba(140, 149, 159, 0.2);
+}
+
+[data-style="github"] .app-header {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+[data-style="github"] .logo-badge {
+  background: rgba(56, 139, 253, 0.15);
+  color: #58a6ff;
+  border: 1px solid rgba(56, 139, 253, 0.4);
+  border-radius: 12px;
+  font-weight: 500;
+  font-size: 0.72rem;
+  padding: 1px 8px;
+}
+
+[data-style="github"] .btn {
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.82rem;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04);
+  transition: 80ms cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+[data-style="github"] .btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--text-muted);
+}
+
+[data-style="github"] .btn-primary {
+  background-color: #238636 !important;
+  color: #ffffff !important;
+  border-color: rgba(240, 246, 252, 0.1) !important;
+  box-shadow: 0 1px 0 rgba(27, 31, 36, 0.1);
+}
+
+[data-style="github"] .btn-primary:hover {
+  background-color: #2ea043 !important;
+}
+
+[data-style="github"] .btn-danger {
+  color: #f85149;
+  border-color: var(--border-color);
+  background: transparent;
+}
+
+[data-style="github"] .btn-danger:hover {
+  background: #b62324;
+  color: #fff;
+  border-color: #b62324;
+}
+
+[data-style="github"] .task-table-header {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+[data-style="github"] .task-row {
+  border-bottom: 1px solid var(--border-color);
+}
+
+[data-style="github"] .task-row:hover {
+  background: rgba(139, 148, 158, 0.06);
+}
+
+[data-style="github"] .task-row.selected {
+  background: rgba(56, 139, 253, 0.15) !important;
+  border-left: 3px solid #1f6feb;
+}
+
+[data-style="github"] .task-row.summary {
+  background: rgba(33, 38, 45, 0.7);
+  font-weight: 600;
+}
+
+[data-style="github"] .card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+}
+
+[data-style="github"] .modal-window {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+}
+
+[data-style="github"] input[type="text"],
+[data-style="github"] input[type="date"],
+[data-style="github"] input[type="number"],
+[data-style="github"] select {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+[data-style="github"] input[type="text"]:focus,
+[data-style="github"] input[type="date"]:focus,
+[data-style="github"] input[type="number"]:focus,
+[data-style="github"] select:focus {
+  border-color: #1f6feb;
+  box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.3);
+  outline: none;
+}
+
+[data-style="github"] .search-input-wrap {
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+}
+
+[data-style="github"] .status-bar {
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  font-size: 0.75rem;
+}
+
+[data-style="github"] .milestone-badge {
+  background: #a371f7;
+}
+
+[data-style="github"] .toolbar {
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
 }
 
 /* ==========================================================================
