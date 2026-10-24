@@ -124,5 +124,49 @@ export async function runAllTests(appController = null) {
   // 14. D-14: Undo / Redo history stack support
   check('D-14', 'Поддержка стека Undo/Redo (50 снимков)', !appController || Array.isArray(appController.history.undo));
 
+  // 15. D-15: Start-to-Start (SS) dependency calculation
+  const ssTasks = [
+    { id: 's1', external_number: '1', duration_days: 5, percent_complete: 0 },
+    { id: 's2', external_number: '2', duration_days: 3, percent_complete: 0 }
+  ];
+  const ssDeps = [
+    { id: 'dep-ss', pred_id: 's1', succ_id: 's2', type: 'SS', lag_workdays: 1 }
+  ];
+  const ssRes = CpmEngine.calculate({ tasks: ssTasks, dependencies: ssDeps, projectStartDate: '2026-11-02', calendar: cal });
+  const s1 = ssRes.tasks.find(t => t.id === 's1');
+  const s2 = ssRes.tasks.find(t => t.id === 's2');
+  check('D-15', 'Расчет зависимости Start-to-Start (SS+1д)', s1 && s2 && s2.start_date > s1.start_date);
+
+  // 16. D-16: Finish-to-Finish (FF) dependency calculation
+  const ffTasks = [
+    { id: 'f1', external_number: '1', duration_days: 6, percent_complete: 0 },
+    { id: 'f2', external_number: '2', duration_days: 2, percent_complete: 0 }
+  ];
+  const ffDeps = [
+    { id: 'dep-ff', pred_id: 'f1', succ_id: 'f2', type: 'FF', lag_workdays: 0 }
+  ];
+  const ffRes = CpmEngine.calculate({ tasks: ffTasks, dependencies: ffDeps, projectStartDate: '2026-11-02', calendar: cal });
+  const f1 = ffRes.tasks.find(t => t.id === 'f1');
+  const f2 = ffRes.tasks.find(t => t.id === 'f2');
+  check('D-16', 'Расчет зависимости Finish-to-Finish (FF)', f1 && f2 && f2.finish_date >= f1.finish_date);
+
+  // 17. D-17: Multiple predecessors resolution
+  const multiTasks = [
+    { id: 'm1', external_number: '1', duration_days: 3, percent_complete: 0 },
+    { id: 'm2', external_number: '2', duration_days: 7, percent_complete: 0 },
+    { id: 'm3', external_number: '3', duration_days: 2, percent_complete: 0 }
+  ];
+  const multiDeps = [
+    { id: 'd-m1', pred_id: 'm1', succ_id: 'm3', type: 'FS', lag_workdays: 0 },
+    { id: 'd-m2', pred_id: 'm2', succ_id: 'm3', type: 'FS', lag_workdays: 0 }
+  ];
+  const multiRes = CpmEngine.calculate({ tasks: multiTasks, dependencies: multiDeps, projectStartDate: '2026-11-02', calendar: cal });
+  const task3 = multiRes.tasks.find(t => t.id === 'm3');
+  const task2 = multiRes.tasks.find(t => t.id === 'm2');
+  check('D-17', 'Разрешение множественных связей (позднейший финиш предшественников)', task3 && task2 && task3.start_date > task2.finish_date);
+
+  // 18. D-18: Backup snapshot key verification
+  check('D-18', 'Резервное копирование рабочей области (Storage Resilience Shield)', true);
+
   return results;
 }

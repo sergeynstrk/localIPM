@@ -42,14 +42,25 @@ class LocalPMJsonDatabase {
     if (this._initialized) return this;
 
     try {
-      // 1. Попытка загрузить существующие проекты из localStorage
-      const rawWs = this._getItem(WORKSPACE_KEY);
+      // 1. Попытка загрузить существующие проекты из localStorage (с fallback на backup)
+      let rawWs = this._getItem(WORKSPACE_KEY);
+      if (!rawWs) {
+        rawWs = this._getItem(`${WORKSPACE_KEY}_backup`);
+      }
       if (rawWs) {
-        const parsed = JSON.parse(rawWs);
-        if (Array.isArray(parsed)) {
-          this.memoryStore.projects = parsed;
-        } else if (parsed && Array.isArray(parsed.projects)) {
-          this.memoryStore.projects = parsed.projects;
+        try {
+          const parsed = JSON.parse(rawWs);
+          if (Array.isArray(parsed)) {
+            this.memoryStore.projects = parsed;
+          } else if (parsed && Array.isArray(parsed.projects)) {
+            this.memoryStore.projects = parsed.projects;
+          }
+        } catch (err) {
+          const backupWs = this._getItem(`${WORKSPACE_KEY}_backup`);
+          if (backupWs) {
+            const parsedBackup = JSON.parse(backupWs);
+            this.memoryStore.projects = Array.isArray(parsedBackup) ? parsedBackup : (parsedBackup.projects || []);
+          }
         }
       }
 
@@ -131,8 +142,15 @@ class LocalPMJsonDatabase {
 
   _persistWorkspace() {
     try {
-      const jsonStr = JSON.stringify(this.memoryStore.projects);
-      this._setItem(WORKSPACE_KEY, jsonStr);
+      if (this.memoryStore.projects && this.memoryStore.projects.length > 0) {
+        const jsonStr = JSON.stringify(this.memoryStore.projects);
+        this._setItem(WORKSPACE_KEY, jsonStr);
+        // Резервная копия на случай сбоя
+        this._setItem(`${WORKSPACE_KEY}_backup`, jsonStr);
+      } else {
+        const jsonStr = JSON.stringify(this.memoryStore.projects);
+        this._setItem(WORKSPACE_KEY, jsonStr);
+      }
     } catch (e) {
       console.error('[LocalPM JSON DB] Ошибка записи в хранилище:', e);
     }

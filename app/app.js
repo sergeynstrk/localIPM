@@ -11,7 +11,7 @@ import { WbsUtils } from './core/wbs.js';
 import { CpmEngine } from './core/cpm.js';
 import { XlsxIO } from './io/xlsx-io.js';
 import { TransferUtils } from './io/transfer.js';
-import { GanttChart } from './ui/gantt.js?v=2.1.3';
+import { GanttChart } from './ui/gantt.js?v=2.1.4';
 
 class AppController {
   constructor() {
@@ -181,8 +181,20 @@ class AppController {
 
   resizeCanvas(canvas) {
     const parent = canvas.parentElement;
-    canvas.width = parent.clientWidth;
-    canvas.height = parent.clientHeight;
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = parent.clientWidth;
+    const cssH = parent.clientHeight;
+    
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    canvas.style.width = `${cssW}px`;
+    canvas.style.height = `${cssH}px`;
+    
+    if (this.gantt) {
+      this.gantt.dpr = dpr;
+      this.gantt.cssWidth = cssW;
+      this.gantt.cssHeight = cssH;
+    }
   }
 
   updateStorageIndicator() {
@@ -1413,7 +1425,9 @@ class AppController {
         start: () => `<div class="col-start">${DateUtils.formatRU(t.start_date)}</div>`,
         finish: () => `<div class="col-finish">${DateUtils.formatRU(t.finish_date)}</div>`,
         preds: () => `<div class="col-preds">
-          <input type="text" style="text-align: center;" value="${predsStr}" data-field="preds" data-id="${t.id}">
+          <div class="preds-autocomplete-container" style="position: relative; width: 100%;">
+            <input type="text" style="text-align: center;" value="${predsStr}" data-field="preds" data-id="${t.id}" autocomplete="off">
+          </div>
         </div>`,
         owner: () => `<div class="col-owner">
           <div class="owner-autocomplete-container">
@@ -1603,9 +1617,14 @@ class AppController {
       }
 
       const predsInput = row.querySelector('input[data-field="preds"]');
-      predsInput.addEventListener('change', (e) => {
-        this.updateTaskPredecessors(t.id, e.target.value);
-      });
+      if (predsInput) {
+        predsInput.addEventListener('change', (e) => {
+          this.updateTaskPredecessors(t.id, e.target.value);
+        });
+        this.setupPredsAutocomplete(predsInput, t.id, (selectedVal) => {
+          this.updateTaskPredecessors(t.id, selectedVal);
+        });
+      }
 
       const ownerInput = row.querySelector('input[data-field="owner"]');
       if (ownerInput) {
@@ -2076,6 +2095,74 @@ class AppController {
         input.value = val;
         dropdown.classList.remove('show');
         if (typeof onSelect === 'function') onSelect(val);
+      }
+    });
+
+    input.addEventListener('blur', () => {
+      setTimeout(() => {
+        dropdown.classList.remove('show');
+      }, 200);
+    });
+  }
+
+  setupPredsAutocomplete(input, currentTaskId, onSelect) {
+    if (!input) return;
+
+    let dropdown = input.nextElementSibling;
+    if (!dropdown || !dropdown.classList.contains('owner-autocomplete-dropdown')) {
+      dropdown = document.createElement('ul');
+      dropdown.className = 'owner-autocomplete-dropdown';
+      input.parentNode.appendChild(dropdown);
+    }
+
+    const showSuggestions = (filterText = '') => {
+      // Предшественником может быть любая задача проекта, кроме самой себя
+      const candidates = this.tasks.filter(t => t.id !== currentTaskId);
+      const parts = (filterText || '').split(/[;,]/);
+      const currentToken = parts[parts.length - 1].trim().toLowerCase();
+
+      const filtered = candidates.filter(t => {
+        if (!currentToken) return true;
+        const numMatch = String(t.external_number || '').toLowerCase().startsWith(currentToken);
+        const nameMatch = (t.name || '').toLowerCase().includes(currentToken);
+        return numMatch || nameMatch;
+      });
+
+      if (filtered.length === 0) {
+        dropdown.classList.remove('show');
+        dropdown.innerHTML = '';
+        return;
+      }
+
+      dropdown.innerHTML = filtered.slice(0, 10).map(t => `
+        <li class="owner-autocomplete-item" data-num="${t.external_number}">
+          <span style="font-weight: 700; color: var(--accent-blue); min-width: 20px;">${t.external_number}</span>
+          <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${t.name}</span>
+        </li>
+      `).join('');
+
+      dropdown.classList.add('show');
+    };
+
+    input.addEventListener('input', () => {
+      showSuggestions(input.value);
+    });
+
+    input.addEventListener('focus', () => {
+      showSuggestions(input.value);
+    });
+
+    dropdown.addEventListener('mousedown', (e) => {
+      const item = e.target.closest('.owner-autocomplete-item');
+      if (item) {
+        const num = item.getAttribute('data-num');
+        const parts = input.value.split(/[;,]/).map(p => p.trim()).filter(Boolean);
+        if (parts.length > 0) parts.pop(); // replace last token
+        parts.push(num);
+        const newVal = parts.join('; ');
+        input.value = newVal;
+        dropdown.classList.remove('show');
+        if (typeof onSelect === 'function') onSelect(newVal);
       }
     });
 

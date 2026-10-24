@@ -694,49 +694,49 @@ export class GanttChart {
       const targetX = isMilestone ? succStartX - 9 : succStartX;
       const targetY = succY;
 
-      // Draw arrow line
-      ctx.beginPath();
-      ctx.moveTo(predEndX, predY);
+      // Render with smooth corners
+      const points = [];
+      points.push({ x: predEndX, y: predY });
 
       const minXGap = 14;
 
       if (targetX >= predEndX + minXGap) {
         // Прямой ход по времени: выходим вправо до середины промежутка, спускаемся/поднимаемся строго к целевой строке
-        // Если succY > predY, стрелка идет СТРОГО ВНИЗ (predY -> succY), никогда не идет наверх
         const midX = Math.round(predEndX + (targetX - predEndX) / 2);
-        ctx.lineTo(midX, predY);
-        ctx.lineTo(midX, targetY);
-        ctx.lineTo(targetX, targetY);
+        points.push({ x: midX, y: predY });
+        points.push({ x: midX, y: targetY });
+        points.push({ x: targetX, y: targetY });
       } else {
         // Обратный ход или сильное перекрытие по времени: огибаем в межстрочном коридоре
         const exitX = predEndX + 12;
         const entryX = targetX - 12;
-        ctx.lineTo(exitX, predY);
+        points.push({ x: exitX, y: predY });
 
         if (succY > predY) {
-          // Идет ВНИЗ: промежуточный горизонтальный коридор строго между строками НИЖЕ predY
-          // Например, ровно под строкой предшественника или на середине между строками
+          // Идет ВНИЗ: промежуточный коридор строго НИЖЕ predY
           const corridorY = Math.min(predY + rHeight / 2, (predY + succY) / 2);
-          ctx.lineTo(exitX, corridorY);
-          ctx.lineTo(entryX, corridorY);
-          ctx.lineTo(entryX, targetY);
-          ctx.lineTo(targetX, targetY);
+          points.push({ x: exitX, y: corridorY });
+          points.push({ x: entryX, y: corridorY });
+          points.push({ x: entryX, y: targetY });
+          points.push({ x: targetX, y: targetY });
         } else if (succY < predY) {
           // Идет ВВЕРХ: коридор строго ВЫШЕ predY
           const corridorY = Math.max(predY - rHeight / 2, (predY + succY) / 2);
-          ctx.lineTo(exitX, corridorY);
-          ctx.lineTo(entryX, corridorY);
-          ctx.lineTo(entryX, targetY);
-          ctx.lineTo(targetX, targetY);
+          points.push({ x: exitX, y: corridorY });
+          points.push({ x: entryX, y: corridorY });
+          points.push({ x: entryX, y: targetY });
+          points.push({ x: targetX, y: targetY });
         } else {
           // На одной строке
           const corridorY = predY + rHeight / 2;
-          ctx.lineTo(exitX, corridorY);
-          ctx.lineTo(entryX, corridorY);
-          ctx.lineTo(entryX, targetY);
-          ctx.lineTo(targetX, targetY);
+          points.push({ x: exitX, y: corridorY });
+          points.push({ x: entryX, y: corridorY });
+          points.push({ x: entryX, y: targetY });
+          points.push({ x: targetX, y: targetY });
         }
       }
+
+      this.drawRoundedPolyline(ctx, points, 4);
       ctx.stroke();
 
       // Единая горизонтальная стрелка-наконечник, указывающая вправо на цель
@@ -747,6 +747,19 @@ export class GanttChart {
       ctx.closePath();
       ctx.fill();
     });
+  }
+
+  drawRoundedPolyline(ctx, pts, radius = 4) {
+    if (pts.length < 2) return;
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+
+    for (let i = 1; i < pts.length - 1; i++) {
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      ctx.arcTo(p1.x, p1.y, p2.x, p2.y, radius);
+    }
+    ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
   }
 
   roundRect(ctx, x, y, width, height, radius) {
