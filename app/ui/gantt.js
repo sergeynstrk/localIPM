@@ -33,6 +33,7 @@ export class GanttChart {
 
     this.selectedTaskId = null;
     this.hoveredTaskId = null;
+    this.activeResizeGuide = null; // { x, date, taskName, days }
 
     this.initEvents();
   }
@@ -139,7 +140,58 @@ export class GanttChart {
     // 5. Draw task bars & milestones
     this.renderTasks();
 
+    // 6. Draw duration resize guideline & date bubble indicator
+    if (this.activeResizeGuide) {
+      this.renderResizeGuide();
+    }
+
     ctx.restore();
+  }
+
+  renderResizeGuide() {
+    const guide = this.activeResizeGuide;
+    if (!guide) return;
+
+    const ctx = this.ctx;
+    const x = guide.x;
+    const h = this.canvas.height;
+    const headerH = this.options.headerHeight;
+
+    // 1. Vertical dotted guideline line
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    ctx.moveTo(x, headerH);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.lineWidth = 1;
+
+    // 2. Glowing target dot at the bottom
+    ctx.fillStyle = '#f59e0b';
+    ctx.beginPath();
+    ctx.arc(x, headerH + 6, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 3. Floating date and duration badge bubble
+    const label = `До: ${DateUtils.formatRU(guide.date)} (${guide.days} дн.)`;
+    ctx.font = 'bold 11px "JetBrains Mono", monospace';
+    const textW = ctx.measureText(label).width;
+    const badgeW = textW + 16;
+    const badgeH = 24;
+    const badgeX = Math.max(10, Math.min(this.canvas.width - badgeW - 10, x - badgeW / 2));
+    const badgeY = headerH + 12;
+
+    ctx.fillStyle = '#0f172a';
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 1.5;
+    this.roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 6);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#fef08a';
+    ctx.fillText(label, badgeX + 8, badgeY + 16);
   }
 
   renderTimelineHeader() {
@@ -351,14 +403,30 @@ export class GanttChart {
       const barY = y + (rHeight - barH) / 2;
 
       const isCritical = this.options.showCriticalPath && t.is_critical;
+      const customStyle = t.custom_style || (t.is_milestone ? 'milestone' : (t.is_summary ? 'bracket' : 'solid'));
+      const customColor = t.custom_color || '';
 
-      if (t.is_milestone) {
+      // Palette definition
+      const colorPalettes = {
+        blue: { start: '#3b82f6', end: '#1d4ed8', prog: '#1e3a8a', bracket: '#60a5fa' },
+        cyan: { start: '#06b6d4', end: '#0891b2', prog: '#164e63', bracket: '#38bdf8' },
+        red: { start: '#ef4444', end: '#b91c1c', prog: '#7f1d1d', bracket: '#f87171' },
+        emerald: { start: '#10b981', end: '#047857', prog: '#064e3b', bracket: '#34d399' },
+        amber: { start: '#f59e0b', end: '#b45309', prog: '#78350f', bracket: '#fbbf24' },
+        purple: { start: '#a855f7', end: '#7e22ce', prog: '#581c87', bracket: '#c084fc' }
+      };
+
+      const pal = colorPalettes[customColor] || (isCritical 
+        ? { start: '#f43f5e', end: '#e11d48', prog: '#9f1239', bracket: '#fb7185' }
+        : { start: '#6366f1', end: '#4f46e5', prog: '#3730a3', bracket: '#38bdf8' });
+
+      if (customStyle === 'milestone' || t.is_milestone) {
         // Milestone diamond (FR-8.02)
         const mx = startX;
         const my = y + rHeight / 2;
         const size = 9;
 
-        ctx.fillStyle = isCritical ? '#ef4444' : '#eab308';
+        ctx.fillStyle = pal.start;
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
@@ -381,53 +449,54 @@ export class GanttChart {
         ctx.fillRect(tx - 3, ty, tw + 6, 16);
         ctx.fillStyle = '#f8fafc';
         ctx.fillText(labelText, tx, ty + 12);
-      } else if (t.is_summary) {
-        // Summary bracket bar (FR-9.03)
-        ctx.fillStyle = '#38bdf8';
-        ctx.fillRect(startX, barY + 3, barW, 5);
+      } else if (customStyle === 'bracket' || t.is_summary) {
+        // Bracket / Phase bar (полоска с концами)
+        ctx.fillStyle = pal.bracket;
+        ctx.fillRect(startX, barY + 3, barW, 6);
 
-        // Brackets left and right
+        // Downward brackets on left and right ends
         ctx.beginPath();
         ctx.moveTo(startX, barY + 3);
-        ctx.lineTo(startX, barY + 15);
-        ctx.lineTo(startX + 8, barY + 7);
+        ctx.lineTo(startX, barY + 16);
+        ctx.lineTo(startX + 8, barY + 8);
         ctx.moveTo(finishX, barY + 3);
-        ctx.lineTo(finishX, barY + 15);
-        ctx.lineTo(finishX - 8, barY + 7);
+        ctx.lineTo(finishX, barY + 16);
+        ctx.lineTo(finishX - 8, barY + 8);
         ctx.fill();
 
         // Label with dark background pill
-        const labelText = `${t.name}`;
+        const labelText = `${t.name} (${t.duration_days}д)`;
         ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
         const tw = ctx.measureText(labelText).width;
         const tx = finishX + 10;
         const ty = barY + 1;
 
-        ctx.fillStyle = 'rgba(11, 15, 25, 0.75)';
-        ctx.fillRect(tx - 3, ty, tw + 6, 16);
+        ctx.fillStyle = 'rgba(11, 15, 25, 0.85)';
+        this.roundRect(ctx, tx - 4, ty, tw + 8, 17, 3);
+        ctx.fill();
         ctx.fillStyle = '#f8fafc';
         ctx.fillText(labelText, tx, ty + 12);
-      } else {
-        // Standard task bar (Modern gradient & subtle border)
-        const radius = 5;
-        if (isCritical) {
-          const grad = ctx.createLinearGradient(startX, barY, startX, barY + barH);
-          grad.addColorStop(0, '#f43f5e');
-          grad.addColorStop(1, '#e11d48');
-          ctx.fillStyle = grad;
-        } else {
-          const grad = ctx.createLinearGradient(startX, barY, startX, barY + barH);
-          grad.addColorStop(0, '#6366f1');
-          grad.addColorStop(1, '#4f46e5');
-          ctx.fillStyle = grad;
+
+        // Visual Resize Grip for custom bracket (if not summary group)
+        if (!t.is_summary) {
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+          ctx.fillRect(finishX - 4, barY + 2, 3, 14);
         }
+      } else {
+        // Standard task bar or rounded pill
+        const radius = customStyle === 'rounded' ? 10 : 5;
+        const grad = ctx.createLinearGradient(startX, barY, startX, barY + barH);
+        grad.addColorStop(0, pal.start);
+        grad.addColorStop(1, pal.end);
+        ctx.fillStyle = grad;
+
         this.roundRect(ctx, startX, barY, barW, barH, radius);
         ctx.fill();
 
         // Progress bar (FR-4.9.07)
         if (this.options.showProgress && t.percent_complete > 0) {
           const progW = barW * (t.percent_complete / 100);
-          ctx.fillStyle = isCritical ? '#9f1239' : '#3730a3';
+          ctx.fillStyle = pal.prog;
           this.roundRect(ctx, startX, barY, progW, barH, radius);
           ctx.fill();
         }
@@ -743,8 +812,19 @@ export class GanttChart {
           if (this.onTaskDurationChange) {
             this.onTaskDurationChange(resizingTask.id, newDuration);
           }
-          this.render();
         }
+
+        // Calculate projected finish date based on start_date and newDuration
+        const projectedFinish = DateUtils.addWorkingDays(resizingTask.start_date, newDuration, this.calendar);
+        const finishX = this.dateToX(projectedFinish) + (this.options.scale === 'day' ? this.options.dayWidth : 0) - this.scrollX;
+
+        this.activeResizeGuide = {
+          x: finishX,
+          date: projectedFinish,
+          days: newDuration
+        };
+
+        this.render();
         return;
       }
 
@@ -776,7 +856,9 @@ export class GanttChart {
       if (isResizing) {
         isResizing = false;
         resizingTask = null;
+        this.activeResizeGuide = null;
         this.canvas.style.cursor = 'default';
+        this.render();
         if (this.onTaskDurationCommit) {
           this.onTaskDurationCommit();
         }

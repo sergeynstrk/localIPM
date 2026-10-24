@@ -1361,6 +1361,8 @@ class AppController {
     document.getElementById('card-task-owner').value = task.owner || '';
     document.getElementById('card-task-preds').value = predsStr;
     document.getElementById('card-task-note').value = task.notes || '';
+    document.getElementById('card-task-style').value = task.custom_style || (task.is_milestone ? 'milestone' : (task.is_summary ? 'bracket' : 'solid'));
+    document.getElementById('card-task-color').value = task.custom_color || '';
 
     this.openModal('modal-task-card');
   }
@@ -1391,6 +1393,8 @@ class AppController {
 
     task.owner = document.getElementById('card-task-owner').value.trim();
     task.notes = document.getElementById('card-task-note').value.trim();
+    task.custom_style = document.getElementById('card-task-style').value;
+    task.custom_color = document.getElementById('card-task-color').value;
 
     const predsStr = document.getElementById('card-task-preds').value.trim();
     this.updateTaskPredecessors(task.id, predsStr);

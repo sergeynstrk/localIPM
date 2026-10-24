@@ -509,6 +509,29 @@
             <input type="text" id="card-task-owner" placeholder="Иванов И.И.">
           </div>
         </div>
+        <div style="display: flex; gap: 12px;">
+          <div class="form-group" style="flex: 1;">
+            <label>Форма / Тип отображения</label>
+            <select id="card-task-style" style="background: var(--bg-tertiary); color: #fff; border: 1px solid var(--border-color); padding: 7px 10px; border-radius: var(--radius-sm); font-size: 0.8rem; width: 100%;">
+              <option value="solid">Прямоугольная плашка (по умолчанию)</option>
+              <option value="bracket">Полоска с концами (скоба WBS / фаза)</option>
+              <option value="rounded">Овальная капсула (pill)</option>
+              <option value="milestone">Ромб контрольной точки (веха)</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label>Цвет панельки</label>
+            <select id="card-task-color" style="background: var(--bg-tertiary); color: #fff; border: 1px solid var(--border-color); padding: 7px 10px; border-radius: var(--radius-sm); font-size: 0.8rem; width: 100%;">
+              <option value="">По умолчанию (Индиго / Красный для Крит.)</option>
+              <option value="blue">🔵 Синий (Индиго/Сапфир)</option>
+              <option value="cyan">💠 Голубой / Cyan</option>
+              <option value="red">🔴 Красный / Crimson</option>
+              <option value="emerald">🟢 Изумрудный / Зелёный</option>
+              <option value="amber">🟠 Янтарный / Оранжевый</option>
+              <option value="purple">🟣 Фиолетовый / Пурпурный</option>
+            </select>
+          </div>
+        </div>
         <div class="form-group">
           <label>Предшественники (связи)</label>
           <input type="text" id="card-task-preds" placeholder="Например: 2НС+1д, 4ОО">
