@@ -260,6 +260,7 @@ export class GanttChart {
     let majorStartX = 0;
     let majorLabel = '';
 
+    // Flush last major segment if any
     for (let i = startDay; i <= endDay + 1; i++) {
       const curDate = DateUtils.addCalendarDays(this.minDate, i);
       const [y, m, d] = curDate.split('-').map(Number);
@@ -268,7 +269,7 @@ export class GanttChart {
       let majorKey = '';
       let mLabel = '';
 
-      if (scale === 'year') {
+      if (scale === 'year' || this.options.dayWidth < 7) {
         majorKey = `${y}`;
         mLabel = `${y} год`;
       } else {
@@ -279,7 +280,7 @@ export class GanttChart {
       if (majorKey !== currentMajor) {
         if (currentMajor !== null) {
           const blockW = x - majorStartX;
-          if (blockW > 45) {
+          if (blockW > 40) {
             ctx.fillStyle = theme.headerText;
             ctx.fillText(majorLabel, Math.max(10, majorStartX + 8), h / 2 - 7);
           }
@@ -295,53 +296,68 @@ export class GanttChart {
         ctx.stroke();
       }
 
-      // Нижняя шкала
-      if (scale === 'day') {
+      // Нижняя шкала: адаптивный шаг в зависимости от реальной ширины дня (dayWidth)
+      const dw = this.options.dayWidth;
+      if (dw >= 20) {
+        // Достаточно места для отображения каждого дня
         const dt = new Date(y, m - 1, d);
         const dayOfWeek = dt.getDay();
         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
         ctx.fillStyle = isWeekend ? '#ef4444' : theme.headerText;
-        ctx.fillText(String(d), x + 8, h - 8);
+        ctx.fillText(String(d), x + Math.max(2, (dw - 10) / 2), h - 8);
 
         ctx.strokeStyle = theme.headerBorder;
         ctx.beginPath();
         ctx.moveTo(x, h / 2);
         ctx.lineTo(x, h);
         ctx.stroke();
-      } else if (scale === 'week') {
+      } else if (dw >= 8) {
+        // Недельный шаг: отображаем только каждый понедельник
         const dt = new Date(y, m - 1, d);
-        if (dt.getDay() === 1) { // Понедельник
+        if (dt.getDay() === 1) {
           ctx.fillStyle = '#60a5fa';
-          ctx.fillText(`${d} ${monthShortNames[m - 1]}`, x + 4, h - 8);
+          ctx.fillText(String(d), x + 2, h - 8);
 
-          ctx.strokeStyle = '#334155';
+          ctx.strokeStyle = theme.headerBorder;
           ctx.beginPath();
           ctx.moveTo(x, h / 2);
           ctx.lineTo(x, h);
           ctx.stroke();
         }
-      } else if (scale === 'month') {
-        if (d === 1 || d === 15) {
-          ctx.fillStyle = d === 1 ? '#e2e8f0' : '#94a3b8';
-          ctx.fillText(String(d), x + 3, h - 8);
-
-          ctx.strokeStyle = d === 1 ? '#334155' : '#1e293b';
-          ctx.beginPath();
-          ctx.moveTo(x, h / 2);
-          ctx.lineTo(x, h);
-          ctx.stroke();
-        }
-      } else if (scale === 'year') {
+      } else if (dw >= 2.5) {
+        // Месячный шаг: отображаем 1-е число каждого месяца
         if (d === 1) {
-          ctx.fillStyle = '#93c5fd';
+          ctx.fillStyle = theme.headerText;
           ctx.fillText(monthShortNames[m - 1], x + 3, h - 8);
 
-          ctx.strokeStyle = '#334155';
+          ctx.strokeStyle = theme.majorBorder;
           ctx.beginPath();
           ctx.moveTo(x, h / 2);
           ctx.lineTo(x, h);
           ctx.stroke();
         }
+      } else {
+        // Очень мелкий масштаб (годовой / квартальный)
+        if (d === 1 && (m === 1 || m === 4 || m === 7 || m === 10)) {
+          const qNum = Math.ceil(m / 3);
+          ctx.fillStyle = '#60a5fa';
+          ctx.fillText(`Q${qNum}`, x + 2, h - 8);
+
+          ctx.strokeStyle = theme.majorBorder;
+          ctx.beginPath();
+          ctx.moveTo(x, h / 2);
+          ctx.lineTo(x, h);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Отрисовываем последний незакрытый блок верхнего уровня
+    if (currentMajor !== null) {
+      const endXVisible = (endDay + 1) * this.options.dayWidth - this.scrollX;
+      if (endXVisible - majorStartX > 40) {
+        ctx.fillStyle = theme.headerText;
+        ctx.fillText(majorLabel, Math.max(10, majorStartX + 8), h / 2 - 7);
       }
     }
   }
@@ -365,20 +381,21 @@ export class GanttChart {
       let drawLine = false;
       let isMajor = false;
 
-      if (scale === 'day') {
+      const dw = this.options.dayWidth;
+      if (dw >= 20) {
         drawLine = true;
         const isWork = DateUtils.isWorkingDay(curDate, this.calendar);
         if (!isWork) {
           ctx.fillStyle = theme.weekendBg;
           ctx.fillRect(x, this.options.headerHeight, this.options.dayWidth, h - this.options.headerHeight);
         }
-      } else if (scale === 'week') {
+      } else if (dw >= 8) {
         const dt = new Date(y, m - 1, d);
         if (dt.getDay() === 1) drawLine = true;
-      } else if (scale === 'month') {
+      } else if (dw >= 2.5) {
         if (d === 1) { drawLine = true; isMajor = true; }
         else if (d === 15) drawLine = true;
-      } else if (scale === 'year') {
+      } else {
         if (d === 1) {
           drawLine = true;
           if (m === 1) isMajor = true;
