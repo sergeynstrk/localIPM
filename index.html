@@ -203,6 +203,9 @@
           </select>
           <span class="tip-q" data-tooltip="Масштаб временной оси Ганта (День, Неделя, Месяц, Год). Также можно масштабировать колесом мыши с зажатым Ctrl">?</span>
 
+          <button class="btn btn-sm" id="btn-gantt-today" title="Перейти к сегодняшнему дню (Клавиша T)" style="padding: 2px 8px; font-size: 0.75rem;">Сегодня</button>
+          <button class="btn btn-sm" id="btn-gantt-fit" title="Вписать весь проект в экран (Клавиша Z)" style="padding: 2px 8px; font-size: 0.75rem;">Вписать</button>
+
           <!-- View Mode Toggles -->
           <div class="view-mode-toggle" style="margin-left: 8px;">
             <button class="view-mode-btn active" id="btn-view-split" title="Таблица и диаграмма Ганта">Сплит</button>
@@ -718,6 +721,40 @@
       <div class="modal-footer">
         <button class="btn" onclick="app.closeModal('modal-appearance')">Отмена</button>
         <button class="btn btn-primary" id="btn-save-appearance">Применить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Pro Context Menu -->
+  <div id="task-context-menu" class="context-menu" style="display: none; position: fixed; z-index: 1000;">
+    <div class="context-menu-item" data-action="card">📝 Открыть карточку задачи</div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item" data-action="add-task">+ Добавить задачу ниже (Enter)</div>
+    <div class="context-menu-item" data-action="add-milestone">◆ Добавить веху</div>
+    <div class="context-menu-item" data-action="duplicate">📋 Дублировать задачу (Ctrl+D)</div>
+    <div class="context-menu-item" data-action="group">📁 Объединить в группу</div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item" data-action="indent">↳ Сделать подзадачей (Indent)</div>
+    <div class="context-menu-item" data-action="outdent">↰ Поднять уровень (Outdent)</div>
+    <div class="context-menu-item" data-action="toggle-manual">✋ Ручной режим / Автоплан</div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item danger" data-action="delete">🗑 Удалить (Delete)</div>
+  </div>
+
+  <!-- Command Palette (Ctrl+K) -->
+  <div class="modal-overlay" id="modal-cmd-palette">
+    <div class="modal-window cmd-palette-window" style="max-width: 560px; margin-top: 12vh;">
+      <div class="cmd-palette-header">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="cmd-palette-input" placeholder="Поиск задач, исполнителей или команд... (Esc для выхода)" autofocus>
+      </div>
+      <div class="cmd-palette-body" id="cmd-palette-results">
+        <!-- Rendered by JS -->
+      </div>
+      <div class="cmd-palette-footer">
+        <span>↑↓ навигация</span>
+        <span>Enter выбор</span>
+        <span>Esc закрыть</span>
       </div>
     </div>
   </div>

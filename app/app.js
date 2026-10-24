@@ -516,7 +516,31 @@ class AppController {
       } else if (e.altKey && e.key === 'ArrowDown') {
         e.preventDefault();
         this.handleMoveTask(1);
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        this.openCommandPalette();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        this.duplicateSelectedTask();
+      } else if (e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        this.gantt.jumpToToday();
+        this.showToast('Переход к сегодняшней дате', 'info');
+      } else if (e.key.toLowerCase() === 'z' && !e.ctrlKey) {
+        e.preventDefault();
+        this.gantt.fitToScreen();
+        this.showToast('Проект вписан в экран', 'info');
       }
+    });
+
+    document.getElementById('btn-gantt-today')?.addEventListener('click', () => {
+      this.gantt.jumpToToday();
+      this.showToast('Переход к сегодняшней дате', 'info');
+    });
+
+    document.getElementById('btn-gantt-fit')?.addEventListener('click', () => {
+      this.gantt.fitToScreen();
+      this.showToast('Проект вписан в экран', 'info');
     });
 
     document.getElementById('btn-export-excel').addEventListener('click', () => this.handleExportExcel());
@@ -609,6 +633,9 @@ class AppController {
 
     // Column Resizing and Drag-and-Drop Reordering (D-04, D-11)
     this.initColumnInteractions();
+
+    // Pro Context Menu
+    this.initContextMenu();
   }
 
   initColumnInteractions() {
@@ -1338,18 +1365,15 @@ class AppController {
       const isChild = (t.level || 0) > 0 || !!t.parent_id;
       row.className = `task-row ${t.is_summary ? 'summary' : ''} ${t.is_critical ? 'critical' : ''} ${isChild ? 'is-child-task' : ''} ${this.selectedTaskId === t.id ? 'selected' : ''}`;
       
-      // Micro-shift: 20px per level + 6px base shift for tree children
-      const indentPx = (t.level || 0) * 20 + (isChild ? 6 : 0);
+      // Clean proportional tree indent: 24px per level without unicode symbols
+      const indentPx = (t.level || 0) * 24;
       const predsStr = ValidationUtils.formatPredecessors(depsBySucc.get(t.id) || [], taskMap);
-
-      const treeBranchIcon = isChild ? `<span class="tree-branch-icon" title="Подзадача (WBS)">↳</span>` : '';
 
       // Dynamic column rendering following current order (D-04, D-05, D-06)
       const currentOrder = this.currentProject?.view_settings?.columnOrder || ['num', 'name', 'duration', 'start', 'finish', 'preds', 'owner', 'note'];
       const cellGenerators = {
         num: () => `<div class="col-num" title="Потяните для изменения порядка задач" draggable="true">${t.external_number || (idx + 1)}</div>`,
-        name: () => `<div class="col-name" style="padding-left: ${indentPx + 8}px; display: flex; align-items: center;">
-          ${treeBranchIcon}
+        name: () => `<div class="col-name" style="padding-left: ${indentPx + 12}px; display: flex; align-items: center;">
           ${t.is_milestone ? '<span class="milestone-badge" title="Контрольная точка (веха)"></span>' : ''}
           ${t.is_manual ? '<span style="margin-right: 6px; font-size: 0.85rem;" title="Ручное планирование (даты зафиксированы)">✋</span>' : ''}
           <input type="text" value="${t.name}" data-field="name" data-id="${t.id}">
@@ -1464,14 +1488,51 @@ class AppController {
         });
       });
 
+      // Excel-style Keyboard Cell Navigation (Arrows, Tab, Enter)
+      const inputFields = ['name', 'duration', 'preds', 'owner', 'note'];
+      row.querySelectorAll('input[data-field]').forEach(inp => {
+        inp.addEventListener('keydown', (e) => {
+          const currentField = inp.dataset.field;
+          const fieldIdx = inputFields.indexOf(currentField);
+
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            inp.blur();
+            // Move to same field in next row, or create new task if at bottom
+            const nextRow = row.nextElementSibling;
+            if (nextRow && !nextRow.classList.contains('ghost-row')) {
+              const targetInp = nextRow.querySelector(`input[data-field="${currentField}"]`);
+              if (targetInp) targetInp.focus();
+            } else {
+              this.handleAddTask(false);
+            }
+          } else if (e.key === 'ArrowDown') {
+            const nextRow = row.nextElementSibling;
+            if (nextRow) {
+              const targetInp = nextRow.querySelector(`input[data-field="${currentField}"]`);
+              if (targetInp) {
+                e.preventDefault();
+                targetInp.focus();
+              }
+            }
+          } else if (e.key === 'ArrowUp') {
+            const prevRow = row.previousElementSibling;
+            if (prevRow) {
+              const targetInp = prevRow.querySelector(`input[data-field="${currentField}"]`);
+              if (targetInp) {
+                e.preventDefault();
+                targetInp.focus();
+              }
+            }
+          }
+        });
+      });
+
       // Inline edits
       const nameInput = row.querySelector('input[data-field="name"]');
       nameInput.addEventListener('change', (e) => {
         t.name = e.target.value.trim() || 'Без названия';
         this.recalculateSchedule();
-      });
-      nameInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') nameInput.blur();
       });
 
       const durInput = row.querySelector('input[data-field="duration"]');
@@ -1482,17 +1543,11 @@ class AppController {
           t.is_milestone = t.duration_days === 0;
           this.recalculateSchedule();
         });
-        durInput.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') durInput.blur();
-        });
       }
 
       const predsInput = row.querySelector('input[data-field="preds"]');
       predsInput.addEventListener('change', (e) => {
         this.updateTaskPredecessors(t.id, e.target.value);
-      });
-      predsInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') predsInput.blur();
       });
 
       const ownerInput = row.querySelector('input[data-field="owner"]');
@@ -1500,9 +1555,6 @@ class AppController {
         ownerInput.addEventListener('change', (e) => {
           t.owner = e.target.value.trim();
           this.recalculateSchedule();
-        });
-        ownerInput.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') ownerInput.blur();
         });
       }
 
@@ -1512,9 +1564,6 @@ class AppController {
           t.note = e.target.value.trim();
           t.notes = t.note;
           this.recalculateSchedule();
-        });
-        noteInput.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') noteInput.blur();
         });
       }
 
@@ -2243,6 +2292,184 @@ class AppController {
     this.currentProject.view_settings = this.currentProject.view_settings || {};
     this.currentProject.view_settings.columnWidths = colWidths;
     this.showToast('Ширина колонок оптимизирована по содержимому', 'info');
+  }
+
+  // --- Duplicate Task (Ctrl+D) ---
+  duplicateSelectedTask() {
+    if (!this.selectedTaskId) {
+      this.showToast('Выберите задачу для дублирования', 'warning');
+      return;
+    }
+    const idx = this.tasks.findIndex(t => t.id === this.selectedTaskId);
+    if (idx < 0) return;
+
+    this.pushHistory();
+
+    const orig = this.tasks[idx];
+    const newId = `task-${Date.now()}`;
+    const clone = {
+      ...JSON.parse(JSON.stringify(orig)),
+      id: newId,
+      name: `${orig.name} (копия)`,
+      sort_order: idx + 1
+    };
+
+    this.tasks.splice(idx + 1, 0, clone);
+    this.tasks.forEach((t, i) => { t.sort_order = i; });
+
+    this.selectedTaskId = newId;
+    this.recalculateSchedule();
+    this.showToast(`Создана копия задачи «${clone.name}»`, 'success');
+  }
+
+  // --- Pro Context Menu ---
+  initContextMenu() {
+    const menu = document.getElementById('task-context-menu');
+    if (!menu) return;
+
+    document.addEventListener('contextmenu', (e) => {
+      const row = e.target.closest('.task-row[data-task-id]');
+      if (!row) {
+        menu.style.display = 'none';
+        return;
+      }
+
+      e.preventDefault();
+      const taskId = row.dataset.taskId;
+      this.selectedTaskId = taskId;
+      this.gantt.selectedTaskId = taskId;
+      document.querySelectorAll('.task-row').forEach(r => r.classList.remove('selected'));
+      row.classList.add('selected');
+      this.gantt.render();
+
+      menu.style.left = `${Math.min(window.innerWidth - 230, e.clientX)}px`;
+      menu.style.top = `${Math.min(window.innerHeight - 300, e.clientY)}px`;
+      menu.style.display = 'block';
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#task-context-menu')) {
+        menu.style.display = 'none';
+      }
+    });
+
+    menu.querySelectorAll('.context-menu-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const action = item.dataset.action;
+        menu.style.display = 'none';
+
+        if (action === 'card') {
+          this.handleOpenTaskCard();
+        } else if (action === 'add-task') {
+          this.handleAddTask(false);
+        } else if (action === 'add-milestone') {
+          this.handleAddTask(true);
+        } else if (action === 'duplicate') {
+          this.duplicateSelectedTask();
+        } else if (action === 'group') {
+          this.handleCreateGroup();
+        } else if (action === 'indent') {
+          this.handleIndent();
+        } else if (action === 'outdent') {
+          this.handleOutdent();
+        } else if (action === 'toggle-manual') {
+          const t = this.tasks.find(x => x.id === this.selectedTaskId);
+          if (t) this.handleSetSchedulingMode(!t.is_manual);
+        } else if (action === 'delete') {
+          this.handleDeleteTask();
+        }
+      });
+    });
+  }
+
+  // --- Command Palette (Ctrl+K) ---
+  openCommandPalette() {
+    const modal = document.getElementById('modal-cmd-palette');
+    const input = document.getElementById('cmd-palette-input');
+    const results = document.getElementById('cmd-palette-results');
+    if (!modal || !input) return;
+
+    input.value = '';
+    this.renderCommandPaletteResults('');
+    this.openModal('modal-cmd-palette');
+    setTimeout(() => input.focus(), 60);
+
+    input.oninput = (e) => this.renderCommandPaletteResults(e.target.value);
+  }
+
+  renderCommandPaletteResults(query) {
+    const results = document.getElementById('cmd-palette-results');
+    if (!results) return;
+
+    const q = (query || '').trim().toLowerCase();
+    const items = [];
+
+    // System Commands
+    const commands = [
+      { title: '+ Новая задача', desc: 'Создать стандартную задачу проекта', action: () => this.handleAddTask(false) },
+      { title: '◆ Новая веха', desc: 'Создать контрольную точку с длительностью 0 дней', action: () => this.handleAddTask(true) },
+      { title: '📁 Создать суммарную группу', desc: 'Сгруппировать задачи в этап WBS', action: () => this.handleCreateGroup() },
+      { title: '🔍 Вписать весь проект в экран', desc: 'Оптимизировать масштаб Ганта под все даты', action: () => { this.gantt.fitToScreen(); this.showToast('Вписано в экран', 'info'); } },
+      { title: '📅 Перейти к сегодняшнему дню', desc: 'Центрировать таймлайн на линии Сегодня', action: () => { this.gantt.jumpToToday(); this.showToast('Переход к сегодня', 'info'); } },
+      { title: '📊 Оптимизировать ширину колонок', desc: 'Автоподбор ширины под текст', action: () => this.handleAutoFitColumns() },
+      { title: '💾 Сохранить базовый план', desc: 'Сделать снимок сроков проекта', action: () => this.handleSaveBaseline() },
+      { title: '🎨 Настройки оформления и стилей', desc: 'Linear, Fluent 2, Классический', action: () => this.openModal('modal-appearance') },
+      { title: '📥 Экспорт в Excel (XLSX)', desc: 'Нативная генерация таблицы OOXML', action: () => this.handleExportExcel() },
+      { title: '📋 Экспорт резервной копии', desc: 'Полный бэкап рабочего пространства в JSON', action: () => this.handleExportWorkspace() }
+    ];
+
+    commands.forEach(cmd => {
+      if (!q || cmd.title.toLowerCase().includes(q) || cmd.desc.toLowerCase().includes(q)) {
+        items.push({
+          type: 'Команда',
+          title: cmd.title,
+          desc: cmd.desc,
+          run: cmd.action
+        });
+      }
+    });
+
+    // Task Items
+    this.tasks.forEach(t => {
+      if (!q || t.name.toLowerCase().includes(q) || (t.owner && t.owner.toLowerCase().includes(q))) {
+        items.push({
+          type: 'Задача',
+          title: t.name,
+          desc: `№${t.external_number || '?'} · ${DateUtils.formatDuration(t.duration_days)} · ${t.owner || 'Без исполнителя'}`,
+          run: () => {
+            this.selectedTaskId = t.id;
+            this.recalculateSchedule();
+            setTimeout(() => {
+              const row = document.querySelector(`.task-row[data-task-id="${t.id}"]`);
+              if (row) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 60);
+          }
+        });
+      }
+    });
+
+    if (items.length === 0) {
+      results.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.85rem;">Ничего не найдено по запросу «${q}»</div>`;
+      return;
+    }
+
+    results.innerHTML = items.slice(0, 15).map((it, i) => `
+      <div class="cmd-item ${i === 0 ? 'active' : ''}" data-idx="${i}">
+        <div>
+          <div style="font-weight: 500;">${it.title}</div>
+          <div style="font-size: 0.76rem; color: var(--text-muted);">${it.desc}</div>
+        </div>
+        <span class="cmd-tag">${it.type}</span>
+      </div>
+    `).join('');
+
+    results.querySelectorAll('.cmd-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const idx = parseInt(el.dataset.idx, 10);
+        this.closeModal('modal-cmd-palette');
+        if (items[idx]) items[idx].run();
+      });
+    });
   }
 }
 

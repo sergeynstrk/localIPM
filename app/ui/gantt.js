@@ -943,6 +943,36 @@ export class GanttChart {
     }, { passive: false });
   }
 
+  jumpToToday() {
+    const todayISO = DateUtils.formatISO(new Date());
+    const x = this.dateToX(todayISO);
+    this.scrollX = Math.max(0, x - this.canvas.width / 2);
+    this.render();
+  }
+
+  fitToScreen() {
+    if (!this.tasks || this.tasks.length === 0) return;
+    const allStarts = this.tasks.map(t => t.start_date).filter(Boolean);
+    const allFinishes = this.tasks.map(t => t.finish_date).filter(Boolean);
+    if (!allStarts.length || !allFinishes.length) return;
+
+    allStarts.sort();
+    allFinishes.sort();
+
+    const minDate = allStarts[0];
+    const maxDate = allFinishes[allFinishes.length - 1];
+
+    const totalDays = Math.max(1, DateUtils.diffDays(minDate, maxDate) + 5);
+    const availableWidth = Math.max(400, this.canvas.width - 80);
+
+    const fitDayWidth = Math.max(2, Math.min(60, availableWidth / totalDays));
+    this.options.dayWidth = fitDayWidth;
+
+    this.minDate = DateUtils.addCalendarDays(minDate, -2);
+    this.scrollX = 0;
+    this.render();
+  }
+
   // Export Gantt chart to PNG data URL (FR-9.12)
   exportToPNG() {
     return this.canvas.toDataURL('image/png');
