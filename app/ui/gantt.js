@@ -51,20 +51,47 @@ export class GanttChart {
       if (t.finish_date && t.finish_date > maxD) maxD = t.finish_date;
     });
 
-    // Add padding around min & max dates (7 days before, 30 days after)
-    this.minDate = DateUtils.addCalendarDays(minD, -7);
-    this.maxDate = DateUtils.addCalendarDays(maxD, 45);
+    this.rawMinDate = minD;
+    this.rawMaxDate = maxD;
+    this.updateDateRange();
+    this.render();
+  }
+
+  updateDateRange() {
+    if (!this.rawMinDate || !this.rawMaxDate) return;
+    const scale = this.options.scale || 'day';
+
+    if (scale === 'week') {
+      // Актуальная неделя: -3 дня от начала, +3 от конца
+      this.minDate = DateUtils.addCalendarDays(this.rawMinDate, -3);
+      this.maxDate = DateUtils.addCalendarDays(this.rawMaxDate, 3);
+    } else if (scale === 'month') {
+      // Настоящий месяц: -5 дней от начала, +5 от конца
+      this.minDate = DateUtils.addCalendarDays(this.rawMinDate, -5);
+      this.maxDate = DateUtils.addCalendarDays(this.rawMaxDate, 5);
+    } else if (scale === 'year') {
+      // Годовой масштаб: охват года с полями
+      this.minDate = DateUtils.addCalendarDays(this.rawMinDate, -15);
+      this.maxDate = DateUtils.addCalendarDays(this.rawMaxDate, 45);
+    } else {
+      // День (по умолчанию)
+      this.minDate = DateUtils.addCalendarDays(this.rawMinDate, -7);
+      this.maxDate = DateUtils.addCalendarDays(this.rawMaxDate, 30);
+    }
 
     this.totalDays = DateUtils.diffWorkingDays(this.minDate, this.maxDate, { working_days: [0,1,2,3,4,5,6] }) || 60;
-    this.render();
   }
 
   setScale(scale) {
     this.options.scale = scale;
     if (scale === 'day') this.options.dayWidth = 32;
-    else if (scale === 'week') this.options.dayWidth = 12;
-    else if (scale === 'month') this.options.dayWidth = 4;
-    else if (scale === 'quarter') this.options.dayWidth = 1.8;
+    else if (scale === 'week') this.options.dayWidth = 24;
+    else if (scale === 'month') this.options.dayWidth = 14;
+    else if (scale === 'year') this.options.dayWidth = 3.5;
+    else this.options.dayWidth = 24;
+
+    this.updateDateRange();
+    this.scrollX = 0; // Сброс смещения к началу видимого диапазона
     this.render();
   }
 
@@ -119,6 +146,7 @@ export class GanttChart {
     const ctx = this.ctx;
     const h = this.options.headerHeight;
     const w = this.canvas.width;
+    const scale = this.options.scale || 'day';
 
     ctx.fillStyle = '#111827';
     ctx.fillRect(0, 0, w, h);
@@ -130,33 +158,49 @@ export class GanttChart {
     ctx.lineTo(w, h / 2);
     ctx.stroke();
 
-    // Top & bottom scales
     const startX = this.scrollX;
     const endX = startX + w;
     const startDay = Math.max(0, Math.floor(startX / this.options.dayWidth));
     const endDay = Math.ceil(endX / this.options.dayWidth);
 
-    ctx.font = '12px system-ui, -apple-system, sans-serif';
+    ctx.font = '11px system-ui, -apple-system, sans-serif';
     ctx.fillStyle = '#9ca3af';
 
     const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+    const monthShortNames = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 
-    let currentMonth = -1;
-    let monthStartX = 0;
+    let currentMajor = null;
+    let majorStartX = 0;
+    let majorLabel = '';
 
-    for (let i = startDay; i <= endDay; i++) {
+    for (let i = startDay; i <= endDay + 1; i++) {
       const curDate = DateUtils.addCalendarDays(this.minDate, i);
       const [y, m, d] = curDate.split('-').map(Number);
       const x = i * this.options.dayWidth - this.scrollX;
 
-      // Month block
-      if (m !== currentMonth) {
-        if (currentMonth !== -1) {
-          ctx.fillStyle = '#f9fafb';
-          ctx.fillText(`${monthNames[currentMonth - 1]} ${y}`, monthStartX + 10, h / 2 - 8);
+      let majorKey = '';
+      let mLabel = '';
+
+      if (scale === 'year') {
+        majorKey = `${y}`;
+        mLabel = `${y} год`;
+      } else {
+        majorKey = `${y}-${m}`;
+        mLabel = `${monthNames[m - 1]} ${y}`;
+      }
+
+      if (majorKey !== currentMajor) {
+        if (currentMajor !== null) {
+          const blockW = x - majorStartX;
+          if (blockW > 45) {
+            ctx.fillStyle = '#f9fafb';
+            ctx.fillText(majorLabel, Math.max(10, majorStartX + 8), h / 2 - 7);
+          }
         }
-        currentMonth = m;
-        monthStartX = x;
+        currentMajor = majorKey;
+        majorStartX = x;
+        majorLabel = mLabel;
+
         ctx.strokeStyle = '#374151';
         ctx.beginPath();
         ctx.moveTo(x, 0);
@@ -164,20 +208,53 @@ export class GanttChart {
         ctx.stroke();
       }
 
-      // Day / Week tick
-      if (this.options.scale === 'day') {
+      // Нижняя шкала
+      if (scale === 'day') {
         const dt = new Date(y, m - 1, d);
         const dayOfWeek = dt.getDay();
         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-
         ctx.fillStyle = isWeekend ? '#ef4444' : '#cbd5e1';
-        ctx.fillText(String(d), x + 10, h - 8);
+        ctx.fillText(String(d), x + 8, h - 8);
 
         ctx.strokeStyle = '#1f2937';
         ctx.beginPath();
         ctx.moveTo(x, h / 2);
         ctx.lineTo(x, h);
         ctx.stroke();
+      } else if (scale === 'week') {
+        const dt = new Date(y, m - 1, d);
+        if (dt.getDay() === 1) { // Понедельник
+          ctx.fillStyle = '#60a5fa';
+          ctx.fillText(`${d} ${monthShortNames[m - 1]}`, x + 4, h - 8);
+
+          ctx.strokeStyle = '#334155';
+          ctx.beginPath();
+          ctx.moveTo(x, h / 2);
+          ctx.lineTo(x, h);
+          ctx.stroke();
+        }
+      } else if (scale === 'month') {
+        if (d === 1 || d === 15) {
+          ctx.fillStyle = d === 1 ? '#e2e8f0' : '#94a3b8';
+          ctx.fillText(String(d), x + 3, h - 8);
+
+          ctx.strokeStyle = d === 1 ? '#334155' : '#1e293b';
+          ctx.beginPath();
+          ctx.moveTo(x, h / 2);
+          ctx.lineTo(x, h);
+          ctx.stroke();
+        }
+      } else if (scale === 'year') {
+        if (d === 1) {
+          ctx.fillStyle = '#93c5fd';
+          ctx.fillText(monthShortNames[m - 1], x + 3, h - 8);
+
+          ctx.strokeStyle = '#334155';
+          ctx.beginPath();
+          ctx.moveTo(x, h / 2);
+          ctx.lineTo(x, h);
+          ctx.stroke();
+        }
       }
     }
   }
@@ -186,6 +263,7 @@ export class GanttChart {
     const ctx = this.ctx;
     const h = this.canvas.height;
     const w = this.canvas.width;
+    const scale = this.options.scale || 'day';
     const startX = this.scrollX;
     const endX = startX + w;
     const startDay = Math.max(0, Math.floor(startX / this.options.dayWidth));
@@ -193,19 +271,39 @@ export class GanttChart {
 
     for (let i = startDay; i <= endDay; i++) {
       const curDate = DateUtils.addCalendarDays(this.minDate, i);
-      const isWork = DateUtils.isWorkingDay(curDate, this.calendar);
+      const [y, m, d] = curDate.split('-').map(Number);
       const x = i * this.options.dayWidth - this.scrollX;
 
-      if (!isWork && this.options.scale === 'day') {
-        ctx.fillStyle = 'rgba(31, 41, 55, 0.45)';
-        ctx.fillRect(x, this.options.headerHeight, this.options.dayWidth, h - this.options.headerHeight);
+      let drawLine = false;
+      let isMajor = false;
+
+      if (scale === 'day') {
+        drawLine = true;
+        const isWork = DateUtils.isWorkingDay(curDate, this.calendar);
+        if (!isWork) {
+          ctx.fillStyle = 'rgba(31, 41, 55, 0.45)';
+          ctx.fillRect(x, this.options.headerHeight, this.options.dayWidth, h - this.options.headerHeight);
+        }
+      } else if (scale === 'week') {
+        const dt = new Date(y, m - 1, d);
+        if (dt.getDay() === 1) drawLine = true;
+      } else if (scale === 'month') {
+        if (d === 1) { drawLine = true; isMajor = true; }
+        else if (d === 15) drawLine = true;
+      } else if (scale === 'year') {
+        if (d === 1) {
+          drawLine = true;
+          if (m === 1) isMajor = true;
+        }
       }
 
-      ctx.strokeStyle = 'rgba(31, 41, 55, 0.5)';
-      ctx.beginPath();
-      ctx.moveTo(x, this.options.headerHeight);
-      ctx.lineTo(x, h);
-      ctx.stroke();
+      if (drawLine) {
+        ctx.strokeStyle = isMajor ? 'rgba(75, 85, 99, 0.6)' : 'rgba(31, 41, 55, 0.45)';
+        ctx.beginPath();
+        ctx.moveTo(x, this.options.headerHeight);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
     }
   }
 
