@@ -534,6 +534,15 @@ export class GanttChart {
       } else {
         this.canvas.style.cursor = 'default';
       }
+
+      // Trigger rich hover card callback
+      if (this.onTaskHover) {
+        this.onTaskHover(hit && hit.isInside ? hit.task : null, hit ? hit.mouseX : 0, hit ? hit.mouseY : 0);
+      }
+    });
+
+    this.canvas.addEventListener('mouseleave', () => {
+      if (this.onTaskHover) this.onTaskHover(null, 0, 0);
     });
 
     this.canvas.addEventListener('mousedown', (e) => {

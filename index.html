@@ -143,12 +143,19 @@
             <option value="quarter">Квартал</option>
           </select>
           <span class="tip-q" data-tooltip="Масштаб временной оси Ганта. Также можно масштабировать колесом мыши с зажатым Ctrl">?</span>
+
+          <!-- View Mode Toggles -->
+          <div class="view-mode-toggle" style="margin-left: 8px;">
+            <button class="view-mode-btn active" id="btn-view-split" title="Таблица и диаграмма Ганта">Сплит</button>
+            <button class="view-mode-btn" id="btn-view-gantt" title="Только диаграмма Ганта">Гант</button>
+            <button class="view-mode-btn" id="btn-view-table" title="Только таблица задач">Таблица</button>
+          </div>
         </div>
       </div>
 
       <!-- Split View: Left Table, Right Gantt -->
-      <div class="split-view">
-        <div class="table-panel">
+      <div class="split-view" id="main-split-view">
+        <div class="table-panel" id="main-table-panel">
           <div class="task-table-header">
             <div class="col-num">№</div>
             <div class="col-name">Задача</div>
@@ -166,6 +173,17 @@
 
         <div class="gantt-panel" id="gantt-container">
           <canvas id="gantt-canvas"></canvas>
+          <!-- Floating Rich Hover Card -->
+          <div class="gantt-tooltip-card" id="gantt-tooltip-card">
+            <div class="gantt-tooltip-title" id="tooltip-task-name">Задача</div>
+            <div class="gantt-tooltip-grid">
+              <span>Сроки:</span><span id="tooltip-task-dates">—</span>
+              <span>Длительность:</span><span id="tooltip-task-dur">—</span>
+              <span>Прогресс:</span><span id="tooltip-task-pct">—</span>
+              <span>Резерв (Float):</span><span id="tooltip-task-float">—</span>
+              <span>Критический путь:</span><span id="tooltip-task-crit">—</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -182,9 +200,14 @@
 
       <!-- Status Bar -->
       <footer class="status-bar">
-        <div>
-          <span class="status-indicator" id="storage-status-dot"></span>
-          <span id="storage-status-text">Локальное хранилище активно</span>
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <div>
+            <span class="status-indicator" id="storage-status-dot"></span>
+            <span id="storage-status-text">Локальное хранилище активно</span>
+          </div>
+          <button class="btn-icon" id="btn-open-shortcuts" title="Горячие клавиши (нажмите ? или кликните сюда)" style="font-size: 0.75rem; color: var(--text-muted); padding: 2px 6px;">
+            ⌨️ Клавиши (?)
+          </button>
         </div>
         <div id="plan-metrics" style="display: flex; gap: 16px;">
           <span>Задач: <b id="metric-tasks-count">0</b></span>
@@ -193,6 +216,35 @@
         </div>
       </footer>
     </main>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Modal: Keyboard Shortcuts Cheat Sheet -->
+  <div class="modal-overlay" id="modal-shortcuts">
+    <div class="modal-window" style="width: 520px;">
+      <div class="modal-header">
+        <span>⌨️ Горячие клавиши LocalPM</span>
+        <button class="btn btn-sm" onclick="app.closeModal('modal-shortcuts')">✕</button>
+      </div>
+      <div class="modal-body">
+        <table class="shortcuts-table">
+          <tbody>
+            <tr><td><span class="shortcut-badge">Insert</span></td><td>Создать новую задачу после выбранной</td></tr>
+            <tr><td><span class="shortcut-badge">Delete</span></td><td>Удалить выбранную задачу и её подзадачи</td></tr>
+            <tr><td><span class="shortcut-badge">Alt + Up</span></td><td>Переместить выбранную задачу на строку выше</td></tr>
+            <tr><td><span class="shortcut-badge">Alt + Down</span></td><td>Переместить выбранную задачу на строку ниже</td></tr>
+            <tr><td><span class="shortcut-badge">Ctrl + Колесо</span></td><td>Плавный зум временной шкалы графика Ганта</td></tr>
+            <tr><td><span class="shortcut-badge">Двойной клик</span></td><td>Быстрое открытие карточки задачи для редактирования</td></tr>
+            <tr><td><span class="shortcut-badge">?</span></td><td>Открыть эту шпаргалку горячих клавиш</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="app.closeModal('modal-shortcuts')">Понятно</button>
+      </div>
+    </div>
   </div>
 
   <!-- Print Footer for PDF -->

@@ -88,6 +88,42 @@ class AppController {
       this.recalculateSchedule();
     };
 
+    // Floating Rich Tooltip Hover Card
+    const tooltipCard = document.getElementById('gantt-tooltip-card');
+    const ttName = document.getElementById('tooltip-task-name');
+    const ttDates = document.getElementById('tooltip-task-dates');
+    const ttDur = document.getElementById('tooltip-task-dur');
+    const ttPct = document.getElementById('tooltip-task-pct');
+    const ttFloat = document.getElementById('tooltip-task-float');
+    const ttCrit = document.getElementById('tooltip-task-crit');
+
+    this.gantt.onTaskHover = (task, mouseX, mouseY) => {
+      if (!tooltipCard) return;
+      if (!task) {
+        tooltipCard.style.display = 'none';
+        return;
+      }
+
+      ttName.innerText = task.name || 'Задача';
+      ttDates.innerText = `${DateUtils.formatRU(task.start_date)} — ${DateUtils.formatRU(task.finish_date)}`;
+      ttDur.innerText = `${task.duration_days ?? 1} раб. дн.`;
+      ttPct.innerText = `${task.percent_complete ?? 0}%`;
+      ttFloat.innerText = `${task.total_float ?? 0} раб. дн.`;
+      ttCrit.innerText = task.is_critical ? 'Да (в резерве 0 дней)' : 'Нет';
+      ttCrit.style.color = task.is_critical ? '#ef4444' : '#10b981';
+
+      // Position tooltip near cursor, keeping within container
+      const parentRect = canvas.parentElement.getBoundingClientRect();
+      let left = mouseX + 16;
+      let top = mouseY - 10;
+      if (left + 240 > parentRect.width) left = mouseX - 250;
+      if (top + 160 > parentRect.height) top = parentRect.height - 170;
+
+      tooltipCard.style.left = `${Math.max(10, left)}px`;
+      tooltipCard.style.top = `${Math.max(10, top)}px`;
+      tooltipCard.style.display = 'block';
+    };
+
     // 3. Service Worker registration (disabled on localhost for immediate hot-reloads)
     if ('serviceWorker' in navigator && window.location.protocol.startsWith('http') && !window.location.hostname.includes('localhost') && window.location.hostname !== '127.0.0.1') {
       try {
@@ -135,6 +171,40 @@ class AppController {
       dot.style.background = '#f59e0b';
       text.innerText = 'IndexedDB: Стандартное хранение (рекомендуется делать экспорт)';
     }
+  }
+
+  showToast(message, type = 'info', actionText = null, onAction = null) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    const icon = type === 'success' ? '✓' : (type === 'error' ? '✕' : (type === 'warning' ? '⚠️' : 'ℹ️'));
+    toast.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-weight: 700;">${icon}</span>
+        <span>${message}</span>
+      </div>
+    `;
+
+    if (actionText && onAction) {
+      const actBtn = document.createElement('button');
+      actBtn.className = 'toast-action';
+      actBtn.innerText = actionText;
+      actBtn.addEventListener('click', () => {
+        onAction();
+        toast.remove();
+      });
+      toast.appendChild(actBtn);
+    }
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.classList.add('hiding');
+      setTimeout(() => toast.remove(), 250);
+    }, 4000);
   }
 
   bindEvents() {
@@ -264,11 +334,72 @@ class AppController {
       });
     }
 
-    // Keyboard Shortcuts (FR-6.08: Insert, Delete, Alt+Up, Alt+Down)
+    // View Mode Switching (Split, Gantt only, Table only)
+    const btnViewSplit = document.getElementById('btn-view-split');
+    const btnViewGantt = document.getElementById('btn-view-gantt');
+    const btnViewTable = document.getElementById('btn-view-table');
+    const viewTablePanel = document.getElementById('main-table-panel');
+    const viewGanttContainer = document.getElementById('gantt-container');
+    const viewResizer = document.getElementById('split-resizer');
+
+    const setViewMode = (mode) => {
+      [btnViewSplit, btnViewGantt, btnViewTable].forEach(b => b?.classList.remove('active'));
+      if (mode === 'gantt') {
+        btnViewGantt?.classList.add('active');
+        if (viewTablePanel) viewTablePanel.style.display = 'none';
+        if (viewResizer) viewResizer.style.display = 'none';
+        if (viewGanttContainer) viewGanttContainer.style.display = 'block';
+      } else if (mode === 'table') {
+        btnViewTable?.classList.add('active');
+        if (viewTablePanel) {
+          viewTablePanel.style.display = 'flex';
+          viewTablePanel.style.width = '100%';
+          viewTablePanel.style.maxWidth = '100vw';
+        }
+        if (viewResizer) viewResizer.style.display = 'none';
+        if (viewGanttContainer) viewGanttContainer.style.display = 'none';
+      } else {
+        btnViewSplit?.classList.add('active');
+        if (viewTablePanel) {
+          viewTablePanel.style.display = 'flex';
+          viewTablePanel.style.width = '580px';
+          viewTablePanel.style.maxWidth = '75vw';
+        }
+        if (viewResizer) viewResizer.style.display = 'block';
+        if (viewGanttContainer) viewGanttContainer.style.display = 'block';
+      }
+      localStorage.setItem('localpm_view_mode', mode);
+      setTimeout(() => {
+        const canvas = document.getElementById('gantt-canvas');
+        if (canvas) {
+          this.resizeCanvas(canvas);
+          this.gantt.render();
+        }
+      }, 50);
+    };
+
+    btnViewSplit?.addEventListener('click', () => setViewMode('split'));
+    btnViewGantt?.addEventListener('click', () => setViewMode('gantt'));
+    btnViewTable?.addEventListener('click', () => setViewMode('table'));
+
+    const savedViewMode = localStorage.getItem('localpm_view_mode');
+    if (savedViewMode && savedViewMode !== 'split') {
+      setViewMode(savedViewMode);
+    }
+
+    // Shortcuts Modal
+    document.getElementById('btn-open-shortcuts')?.addEventListener('click', () => {
+      this.openModal('modal-shortcuts');
+    });
+
+    // Keyboard Shortcuts (FR-6.08: Insert, Delete, Alt+Up, Alt+Down, ?)
     window.addEventListener('keydown', (e) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
 
-      if (e.key === 'Insert') {
+      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+        e.preventDefault();
+        this.openModal('modal-shortcuts');
+      } else if (e.key === 'Insert') {
         e.preventDefault();
         this.handleAddTask(false);
       } else if (e.key === 'Delete') {
@@ -632,7 +763,7 @@ class AppController {
     }
     // Now persist scenario changes as new baseline
     this.recalculateSchedule();
-    alert('Сценарий «Что-если» успешно утвержден и сохранен в основной план проекта!');
+    this.showToast('Сценарий «Что-если» утвержден и сохранен в основной план!', 'success');
   }
 
   resetSandbox() {
@@ -772,6 +903,25 @@ class AppController {
       depsBySucc.get(d.succ_id).push(d);
     });
 
+    if (this.tasks.length === 0) {
+      bodyEl.innerHTML = `
+        <div class="empty-state-card">
+          <div class="empty-state-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+          <div class="empty-state-title">В проекте пока нет задач</div>
+          <div class="empty-state-desc">Создайте первую задачу вручную или загрузите готовый план из Excel / TSV.</div>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-primary btn-sm" id="btn-empty-add-task">+ Добавить задачу</button>
+            <button class="btn btn-sm" id="btn-empty-import">📥 Импорт Excel</button>
+          </div>
+        </div>
+      `;
+      document.getElementById('btn-empty-add-task')?.addEventListener('click', () => this.handleAddTask(false));
+      document.getElementById('btn-empty-import')?.addEventListener('click', () => this.openModal('modal-import-hub'));
+      return;
+    }
+
     this.tasks.forEach((t, idx) => {
       const row = document.createElement('div');
       row.className = `task-row ${t.is_summary ? 'summary' : ''} ${t.is_critical ? 'critical' : ''} ${this.selectedTaskId === t.id ? 'selected' : ''}`;
@@ -863,6 +1013,14 @@ class AppController {
           document.querySelectorAll('.task-row').forEach(r => r.classList.remove('selected'));
           row.classList.add('selected');
           this.gantt.render();
+        }
+      });
+
+      // Double-click row to open Task Card modal (Enterprise UX standard)
+      row.addEventListener('dblclick', (e) => {
+        if (e.target.tagName !== 'INPUT') {
+          this.selectedTaskId = t.id;
+          this.handleOpenTaskCard();
         }
       });
 
@@ -1079,7 +1237,11 @@ class AppController {
     const id = this.selectedTaskId;
     const taskIndex = this.tasks.findIndex(t => t.id === id);
     
-    // Filter out deleted task and any of its children
+    // Filter out deleted task and any of its children (with Undo backup)
+    const backupTasks = [...this.tasks];
+    const backupDeps = [...this.dependencies];
+    const deletedTask = this.tasks.find(t => t.id === id);
+
     this.tasks = this.tasks.filter(t => t.id !== id && t.parent_id !== id);
     this.dependencies = this.dependencies.filter(d => d.pred_id !== id && d.succ_id !== id);
 
@@ -1097,6 +1259,14 @@ class AppController {
     }
 
     this.recalculateSchedule();
+
+    this.showToast(`Удалена задача «${deletedTask?.name || 'Задача'}»`, 'warning', 'Отменить', () => {
+      this.tasks = backupTasks;
+      this.dependencies = backupDeps;
+      this.selectedTaskId = id;
+      this.recalculateSchedule();
+      this.showToast('Удаление отменено', 'info');
+    });
   }
 
   handleMoveTask(direction) {
@@ -1263,9 +1433,10 @@ class AppController {
       this.dependencies = [...this.dependencies, ...newDeps];
     }
 
+    this.closeModal('modal-import-hub');
     this.closeModal('modal-import');
     this.recalculateSchedule();
-    alert(`Успешно импортировано ${newTasks.length} задач!`);
+    this.showToast(`Успешно импортировано ${newTasks.length} задач!`, 'success');
   }
 
   handleExportExcel() {
@@ -1277,6 +1448,7 @@ class AppController {
     a.download = `${this.currentProject.name.replace(/\s+/g, '_')}_${DateUtils.formatISO(new Date())}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
+    this.showToast('Файл Excel успешно скачан', 'success');
   }
 
   handlePrintPDF() {
@@ -1289,6 +1461,7 @@ class AppController {
     a.href = dataUrl;
     a.download = `Gantt_${this.currentProject.name}.png`;
     a.click();
+    this.showToast('Диаграмма Ганта скачана в формате PNG', 'success');
   }
 
   // --- Peer Transfer Package (FR-17) ---
@@ -1319,8 +1492,9 @@ class AppController {
     a.click();
     URL.revokeObjectURL(url);
 
+    this.closeModal('modal-export-hub');
     this.closeModal('modal-transfer');
-    alert(kind === 'transfer' ? 'Пакет передачи сформирован и скачан!' : 'Пакет возврата сформирован!');
+    this.showToast(kind === 'transfer' ? 'Пакет передачи коллеге сформирован!' : 'Пакет возврата сформирован!', 'success');
   }
 
   async handleImportPeerPackage(event) {
