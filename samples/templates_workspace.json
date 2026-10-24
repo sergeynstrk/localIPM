@@ -1,0 +1,399 @@
+{
+  "format": "localpm-workspace",
+  "formatVersion": 1,
+  "exportedAt": "2026-10-24T12:58:10.087Z",
+  "projects": [
+    {
+      "id": "tpl-proj-it-dev",
+      "name": "Типовой проект: Разработка ИТ-системы",
+      "start_date": "2026-11-02",
+      "revision": 1,
+      "calendar": {
+        "type": "rf",
+        "working_days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "created_at": "2026-10-24T12:58:10.088Z",
+      "updated_at": "2026-10-24T12:58:10.088Z",
+      "tasks": [
+        {
+          "id": "it-1",
+          "external_number": "1",
+          "name": "1. Предпроектное обследование и ТЗ",
+          "duration_days": 5,
+          "start_date": "2026-11-02",
+          "is_milestone": false,
+          "level": 0
+        },
+        {
+          "id": "it-2",
+          "external_number": "2",
+          "parent_id": "it-1",
+          "name": "Сбор требований и интервью",
+          "duration_days": 3,
+          "start_date": "2026-11-02",
+          "is_milestone": false,
+          "level": 1
+        },
+        {
+          "id": "it-3",
+          "external_number": "3",
+          "parent_id": "it-1",
+          "name": "Согласование ТЗ",
+          "duration_days": 2,
+          "start_date": "2026-11-05",
+          "is_milestone": false,
+          "level": 1
+        },
+        {
+          "id": "it-4",
+          "external_number": "4",
+          "parent_id": "it-1",
+          "name": "ТЗ утверждено",
+          "duration_days": 0,
+          "start_date": "2026-11-09",
+          "is_milestone": true,
+          "level": 1
+        },
+        {
+          "id": "it-5",
+          "external_number": "5",
+          "name": "2. Проектирование и архитектура",
+          "duration_days": 5,
+          "start_date": "2026-11-10",
+          "is_milestone": false,
+          "level": 0
+        },
+        {
+          "id": "it-6",
+          "external_number": "6",
+          "parent_id": "it-5",
+          "name": "Схема данных и API контракты",
+          "duration_days": 5,
+          "start_date": "2026-11-10",
+          "is_milestone": false,
+          "level": 1
+        },
+        {
+          "id": "it-7",
+          "external_number": "7",
+          "name": "3. Разработка и тестирование",
+          "duration_days": 15,
+          "start_date": "2026-11-17",
+          "is_milestone": false,
+          "level": 0
+        },
+        {
+          "id": "it-8",
+          "external_number": "8",
+          "parent_id": "it-7",
+          "name": "Backend сервисы",
+          "duration_days": 10,
+          "start_date": "2026-11-17",
+          "is_milestone": false,
+          "level": 1
+        },
+        {
+          "id": "it-9",
+          "external_number": "9",
+          "parent_id": "it-7",
+          "name": "Frontend интерфейс",
+          "duration_days": 10,
+          "start_date": "2026-11-17",
+          "is_milestone": false,
+          "level": 1
+        },
+        {
+          "id": "it-10",
+          "external_number": "10",
+          "parent_id": "it-7",
+          "name": "Интеграционное тестирование (QA)",
+          "duration_days": 5,
+          "start_date": "2026-12-01",
+          "is_milestone": false,
+          "level": 1
+        },
+        {
+          "id": "it-11",
+          "external_number": "11",
+          "name": "4. Ввод в эксплуатацию",
+          "duration_days": 3,
+          "start_date": "2026-12-08",
+          "is_milestone": false,
+          "level": 0
+        },
+        {
+          "id": "it-12",
+          "external_number": "12",
+          "parent_id": "it-11",
+          "name": "Релиз и сдача в прод",
+          "duration_days": 0,
+          "start_date": "2026-12-11",
+          "is_milestone": true,
+          "level": 1
+        }
+      ],
+      "dependencies": [
+        {
+          "id": "dep-it-1",
+          "pred_id": "it-2",
+          "succ_id": "it-3",
+          "type": "FS",
+          "lag_workdays": 0
+        },
+        {
+          "id": "dep-it-2",
+          "pred_id": "it-3",
+          "succ_id": "it-4",
+          "type": "FS",
+          "lag_workdays": 0
+        },
+        {
+          "id": "dep-it-3",
+          "pred_id": "it-4",
+          "succ_id": "it-6",
+          "type": "FS",
+          "lag_workdays": 0
+        },
+        {
+          "id": "dep-it-4",
+          "pred_id": "it-6",
+          "succ_id": "it-8",
+          "type": "FS",
+          "lag_workdays": 0
+        },
+        {
+          "id": "dep-it-5",
+          "pred_id": "it-6",
+          "succ_id": "it-9",
+          "type": "FS",
+          "lag_workdays": 0
+        },
+        {
+          "id": "dep-it-6",
+          "pred_id": "it-8",
+          "succ_id": "it-10",
+          "type": "FS",
+          "lag_workdays": 0
+        },
+        {
+          "id": "dep-it-7",
+          "pred_id": "it-9",
+          "succ_id": "it-10",
+          "type": "FS",
+          "lag_workdays": 0
+        },
+        {
+          "id": "dep-it-8",
+          "pred_id": "it-10",
+          "succ_id": "it-11",
+          "type": "FS",
+          "lag_workdays": 0
+        },
+        {
+          "id": "dep-it-9",
+          "pred_id": "it-11",
+          "succ_id": "it-12",
+          "type": "FS",
+          "lag_workdays": 0
+        }
+      ]
+    },
+    {
+      "id": "tpl-proj-office-renov",
+      "name": "Типовой проект: Ремонт и оснащение офиса",
+      "start_date": "2026-11-02",
+      "revision": 1,
+      "calendar": {
+        "type": "rf",
+        "working_days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "created_at": "2026-10-24T12:58:10.088Z",
+      "updated_at": "2026-10-24T12:58:10.088Z",
+      "tasks": [
+        {
+          "id": "ren-1",
+          "external_number": "1",
+          "name": "1. Дизайн-проект и смета",
+          "duration_days": 10,
+          "start_date": "2026-11-02",
+          "is_milestone": false,
+          "level": 0
+        },
+        {
+          "id": "ren-2",
+          "external_number": "2",
+          "parent_id": "ren-1",
+          "name": "Смета и договор с подрядчиком",
+          "duration_days": 0,
+          "start_date": "2026-11-16",
+          "is_milestone": true,
+          "level": 1
+        },
+        {
+          "id": "ren-3",
+          "external_number": "3",
+          "name": "2. Демонтаж и черновые работы",
+          "duration_days": 8,
+          "start_date": "2026-11-17",
+          "is_milestone": false,
+          "level": 0
+        },
+        {
+          "id": "ren-4",
+          "external_number": "4",
+          "name": "3. Чистовая отделка и электрика",
+          "duration_days": 12,
+          "start_date": "2026-11-27",
+          "is_milestone": false,
+          "level": 0
+        },
+        {
+          "id": "ren-5",
+          "external_number": "5",
+          "name": "4. Закупка и сборка мебели",
+          "duration_days": 6,
+          "start_date": "2026-12-15",
+          "is_milestone": false,
+          "level": 0
+        },
+        {
+          "id": "ren-6",
+          "external_number": "6",
+          "name": "Офис готов к переезду",
+          "duration_days": 0,
+          "start_date": "2026-12-23",
+          "is_milestone": true,
+          "level": 0
+        }
+      ],
+      "dependencies": [
+        {
+          "id": "dep-ren-1",
+          "pred_id": "ren-1",
+          "succ_id": "ren-2",
+          "type": "FS",
+          "lag_workdays": 0
+        },
+        {
+          "id": "dep-ren-2",
+          "pred_id": "ren-2",
+          "succ_id": "ren-3",
+          "type": "FS",
+          "lag_workdays": 0
+        },
+        {
+          "id": "dep-ren-3",
+          "pred_id": "ren-3",
+          "succ_id": "ren-4",
+          "type": "FS",
+          "lag_workdays": 0
+        },
+        {
+          "id": "dep-ren-4",
+          "pred_id": "ren-4",
+          "succ_id": "ren-5",
+          "type": "FS",
+          "lag_workdays": 0
+        },
+        {
+          "id": "dep-ren-5",
+          "pred_id": "ren-5",
+          "succ_id": "ren-6",
+          "type": "FS",
+          "lag_workdays": 0
+        }
+      ]
+    },
+    {
+      "id": "tpl-proj-marketing-launch",
+      "name": "Типовой проект: Маркетинговый запуск продукта",
+      "start_date": "2026-11-02",
+      "revision": 1,
+      "calendar": {
+        "type": "rf",
+        "working_days": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "created_at": "2026-10-24T12:58:10.088Z",
+      "updated_at": "2026-10-24T12:58:10.088Z",
+      "tasks": [
+        {
+          "id": "mkt-1",
+          "external_number": "1",
+          "name": "Анализ ЦА и позиционирование",
+          "duration_days": 5,
+          "start_date": "2026-11-02",
+          "is_milestone": false,
+          "level": 0
+        },
+        {
+          "id": "mkt-2",
+          "external_number": "2",
+          "name": "Подготовка посадочной страницы (Landing)",
+          "duration_days": 7,
+          "start_date": "2026-11-09",
+          "is_milestone": false,
+          "level": 0
+        },
+        {
+          "id": "mkt-3",
+          "external_number": "3",
+          "name": "Настройка рекламных кампаний",
+          "duration_days": 4,
+          "start_date": "2026-11-18",
+          "is_milestone": false,
+          "level": 0
+        },
+        {
+          "id": "mkt-4",
+          "external_number": "4",
+          "name": "Старт рекламной кампании",
+          "duration_days": 0,
+          "start_date": "2026-11-24",
+          "is_milestone": true,
+          "level": 0
+        }
+      ],
+      "dependencies": [
+        {
+          "id": "dep-mkt-1",
+          "pred_id": "mkt-1",
+          "succ_id": "mkt-2",
+          "type": "FS",
+          "lag_workdays": 0
+        },
+        {
+          "id": "dep-mkt-2",
+          "pred_id": "mkt-2",
+          "succ_id": "mkt-3",
+          "type": "FS",
+          "lag_workdays": 0
+        },
+        {
+          "id": "dep-mkt-3",
+          "pred_id": "mkt-3",
+          "succ_id": "mkt-4",
+          "type": "FS",
+          "lag_workdays": 0
+        }
+      ]
+    }
+  ]
+}

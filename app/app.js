@@ -1411,7 +1411,9 @@ class AppController {
           <input type="text" style="text-align: center;" value="${predsStr}" data-field="preds" data-id="${t.id}">
         </div>`,
         owner: () => `<div class="col-owner">
-          <input type="text" value="${t.owner || ''}" placeholder="Исполнитель" data-field="owner" data-id="${t.id}">
+          <div class="owner-autocomplete-container">
+            <input type="text" value="${t.owner || ''}" placeholder="Исполнитель" data-field="owner" data-id="${t.id}" autocomplete="off">
+          </div>
         </div>`,
         note: () => `<div class="col-note">
           <input type="text" value="${t.note || t.notes || ''}" placeholder="Прим." data-field="note" data-id="${t.id}">
@@ -1604,6 +1606,10 @@ class AppController {
       if (ownerInput) {
         ownerInput.addEventListener('change', (e) => {
           t.owner = e.target.value.trim();
+          this.recalculateSchedule();
+        });
+        this.setupOwnerAutocomplete(ownerInput, (selectedVal) => {
+          t.owner = selectedVal.trim();
           this.recalculateSchedule();
         });
       }
@@ -1960,6 +1966,11 @@ class AppController {
       btn.classList.toggle('active', btn.getAttribute('data-color') === curColor);
     });
 
+    const cardOwnerInput = document.getElementById('card-task-owner');
+    if (cardOwnerInput) {
+      this.setupOwnerAutocomplete(cardOwnerInput);
+    }
+
     this.openModal('modal-task-card');
   }
 
@@ -1997,6 +2008,77 @@ class AppController {
 
     this.closeModal('modal-task-card');
     this.recalculateSchedule();
+  }
+
+  getUniqueOwners() {
+    const set = new Set();
+    this.projects.forEach(p => {
+      if (Array.isArray(p.tasks)) {
+        p.tasks.forEach(t => {
+          if (t.owner && t.owner.trim()) set.add(t.owner.trim());
+        });
+      }
+    });
+    this.tasks.forEach(t => {
+      if (t.owner && t.owner.trim()) set.add(t.owner.trim());
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'ru'));
+  }
+
+  setupOwnerAutocomplete(input, onSelect) {
+    if (!input) return;
+
+    let dropdown = input.nextElementSibling;
+    if (!dropdown || !dropdown.classList.contains('owner-autocomplete-dropdown')) {
+      dropdown = document.createElement('ul');
+      dropdown.className = 'owner-autocomplete-dropdown';
+      input.parentNode.appendChild(dropdown);
+    }
+
+    const showSuggestions = (filterText = '') => {
+      const allOwners = this.getUniqueOwners();
+      const term = (filterText || '').toLowerCase().trim();
+      const filtered = allOwners.filter(o => !term || o.toLowerCase().includes(term));
+
+      if (filtered.length === 0) {
+        dropdown.classList.remove('show');
+        dropdown.innerHTML = '';
+        return;
+      }
+
+      dropdown.innerHTML = filtered.map(owner => `
+        <li class="owner-autocomplete-item" data-value="${owner}">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span>${owner}</span>
+        </li>
+      `).join('');
+
+      dropdown.classList.add('show');
+    };
+
+    input.addEventListener('input', () => {
+      showSuggestions(input.value);
+    });
+
+    input.addEventListener('focus', () => {
+      showSuggestions(input.value);
+    });
+
+    dropdown.addEventListener('mousedown', (e) => {
+      const item = e.target.closest('.owner-autocomplete-item');
+      if (item) {
+        const val = item.getAttribute('data-value');
+        input.value = val;
+        dropdown.classList.remove('show');
+        if (typeof onSelect === 'function') onSelect(val);
+      }
+    });
+
+    input.addEventListener('blur', () => {
+      setTimeout(() => {
+        dropdown.classList.remove('show');
+      }, 200);
+    });
   }
 
   handleSearchTasks(query) {
