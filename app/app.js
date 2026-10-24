@@ -186,12 +186,9 @@ class AppController {
   updateStorageIndicator() {
     const dot = document.getElementById('storage-status-dot');
     const text = document.getElementById('storage-status-text');
-    if (db.isPersistent) {
+    if (dot && text) {
       dot.style.background = '#10b981';
-      text.innerText = 'IndexedDB: Постоянное хранилище активно (данные защищены)';
-    } else {
-      dot.style.background = '#f59e0b';
-      text.innerText = 'IndexedDB: Стандартное хранение (рекомендуется делать экспорт)';
+      text.innerText = 'Хранилище: Локальное хранение в JSON (без IndexedDB)';
     }
   }
 
@@ -752,6 +749,9 @@ class AppController {
     }
     document.documentElement.setAttribute('data-theme', mode);
     document.documentElement.setAttribute('data-style', this.uiStyle);
+    if (this.gantt) {
+      this.gantt.render();
+    }
   }
 
   pushHistory() {

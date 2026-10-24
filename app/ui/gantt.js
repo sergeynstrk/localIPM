@@ -113,6 +113,40 @@ export class GanttChart {
     return DateUtils.addCalendarDays(this.minDate, days);
   }
 
+  getThemeColors() {
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    if (isLight) {
+      return {
+        isLight: true,
+        headerBg: '#f8fafc',
+        headerBorder: '#e2e8f0',
+        headerText: '#1e293b',
+        headerTextSub: '#64748b',
+        majorBorder: '#e2e8f0',
+        weekendBg: 'rgba(241, 245, 249, 0.75)', // Soft, low-contrast weekend background
+        gridLine: 'rgba(226, 232, 240, 0.7)',  // Soft subtle grid line
+        gridLineMajor: 'rgba(203, 213, 225, 0.9)',
+        rowSelected: 'rgba(99, 102, 241, 0.12)',
+        guideBg: '#ffffff',
+        guideText: '#0f172a'
+      };
+    }
+    return {
+      isLight: false,
+      headerBg: '#111827',
+      headerBorder: '#1f2937',
+      headerText: '#f9fafb',
+      headerTextSub: '#9ca3af',
+      majorBorder: '#374151',
+      weekendBg: 'rgba(31, 41, 55, 0.45)',
+      gridLine: 'rgba(31, 41, 55, 0.45)',
+      gridLineMajor: 'rgba(75, 85, 99, 0.6)',
+      rowSelected: 'rgba(59, 130, 246, 0.15)',
+      guideBg: '#0f172a',
+      guideText: '#fef08a'
+    };
+  }
+
   render() {
     if (!this.canvas || !this.ctx) return;
     const { width, height } = this.canvas;
@@ -199,10 +233,11 @@ export class GanttChart {
     const h = this.options.headerHeight;
     const w = this.canvas.width;
     const scale = this.options.scale || 'day';
+    const theme = this.getThemeColors();
 
-    ctx.fillStyle = '#111827';
+    ctx.fillStyle = theme.headerBg;
     ctx.fillRect(0, 0, w, h);
-    ctx.strokeStyle = '#1f2937';
+    ctx.strokeStyle = theme.headerBorder;
     ctx.beginPath();
     ctx.moveTo(0, h);
     ctx.lineTo(w, h);
@@ -216,7 +251,7 @@ export class GanttChart {
     const endDay = Math.ceil(endX / this.options.dayWidth);
 
     ctx.font = '11px system-ui, -apple-system, sans-serif';
-    ctx.fillStyle = '#9ca3af';
+    ctx.fillStyle = theme.headerTextSub;
 
     const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
     const monthShortNames = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
@@ -245,7 +280,7 @@ export class GanttChart {
         if (currentMajor !== null) {
           const blockW = x - majorStartX;
           if (blockW > 45) {
-            ctx.fillStyle = '#f9fafb';
+            ctx.fillStyle = theme.headerText;
             ctx.fillText(majorLabel, Math.max(10, majorStartX + 8), h / 2 - 7);
           }
         }
@@ -253,7 +288,7 @@ export class GanttChart {
         majorStartX = x;
         majorLabel = mLabel;
 
-        ctx.strokeStyle = '#374151';
+        ctx.strokeStyle = theme.majorBorder;
         ctx.beginPath();
         ctx.moveTo(x, 0);
         ctx.lineTo(x, h / 2);
@@ -265,10 +300,10 @@ export class GanttChart {
         const dt = new Date(y, m - 1, d);
         const dayOfWeek = dt.getDay();
         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-        ctx.fillStyle = isWeekend ? '#ef4444' : '#cbd5e1';
+        ctx.fillStyle = isWeekend ? '#ef4444' : theme.headerText;
         ctx.fillText(String(d), x + 8, h - 8);
 
-        ctx.strokeStyle = '#1f2937';
+        ctx.strokeStyle = theme.headerBorder;
         ctx.beginPath();
         ctx.moveTo(x, h / 2);
         ctx.lineTo(x, h);
@@ -316,6 +351,7 @@ export class GanttChart {
     const h = this.canvas.height;
     const w = this.canvas.width;
     const scale = this.options.scale || 'day';
+    const theme = this.getThemeColors();
     const startX = this.scrollX;
     const endX = startX + w;
     const startDay = Math.max(0, Math.floor(startX / this.options.dayWidth));
@@ -333,7 +369,7 @@ export class GanttChart {
         drawLine = true;
         const isWork = DateUtils.isWorkingDay(curDate, this.calendar);
         if (!isWork) {
-          ctx.fillStyle = 'rgba(31, 41, 55, 0.45)';
+          ctx.fillStyle = theme.weekendBg;
           ctx.fillRect(x, this.options.headerHeight, this.options.dayWidth, h - this.options.headerHeight);
         }
       } else if (scale === 'week') {
@@ -350,7 +386,7 @@ export class GanttChart {
       }
 
       if (drawLine) {
-        ctx.strokeStyle = isMajor ? 'rgba(75, 85, 99, 0.6)' : 'rgba(31, 41, 55, 0.45)';
+        ctx.strokeStyle = isMajor ? theme.gridLineMajor : theme.gridLine;
         ctx.beginPath();
         ctx.moveTo(x, this.options.headerHeight);
         ctx.lineTo(x, h);

@@ -2,7 +2,7 @@
  * LocalPM - Service Worker (Offline Cache)
  */
 
-const CACHE_NAME = 'localpm-v3';
+const CACHE_NAME = 'localpm-v2.1.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

@@ -81,9 +81,7 @@ body {
 /* App Header */
 .app-header {
   height: var(--header-height);
-  background: rgba(15, 23, 42, 0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
@@ -258,9 +256,7 @@ body {
 /* Toolbar */
 .toolbar {
   height: 50px;
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
@@ -715,17 +711,15 @@ body {
 }
 
 .modal-window {
-  background: rgba(15, 23, 42, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   width: 580px;
   max-width: 92vw;
   max-height: 88vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.75), 0 0 1px 1px rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-lg);
   transform: scale(0.96) translateY(8px);
   transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -807,9 +801,7 @@ body {
 /* Status Bar */
 .status-bar {
   height: 32px;
-  background: rgba(15, 23, 42, 0.95);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: var(--bg-secondary);
   border-top: 1px solid var(--border-color);
   display: flex;
   align-items: center;
@@ -1101,12 +1093,10 @@ body {
   pointer-events: auto;
   min-width: 280px;
   max-width: 380px;
-  background: rgba(15, 23, 42, 0.95);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-left: 4px solid var(--accent-blue);
-  color: #fff;
+  color: var(--text-primary);
   padding: 12px 16px;
   border-radius: var(--radius-sm);
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
@@ -1354,14 +1344,28 @@ body {
   --bg-primary: #f8fafc;
   --bg-secondary: #ffffff;
   --bg-tertiary: #f1f5f9;
+  --bg-elevated: #e2e8f0;
+  --bg-hover: #e2e8f0;
   --bg-card: #ffffff;
-  --border-color: #e2e8f0;
+  --border-color: #cbd5e1;
+  --border-subtle: #e2e8f0;
+  --border-hover: #94a3b8;
   --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --text-subtle: #94a3b8;
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.09);
+}
+
+[data-theme="light"] .app-header,
+[data-theme="light"] .toolbar,
+[data-theme="light"] .sidebar,
+[data-theme="light"] .status-bar {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
 }
 
 [data-theme="light"] .task-table-header {
@@ -1370,12 +1374,17 @@ body {
   border-bottom: 1px solid #cbd5e1;
 }
 
+[data-theme="light"] .task-row {
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+}
+
 [data-theme="light"] .task-row:hover {
   background: #f8fafc;
 }
 
 [data-theme="light"] .task-row.selected {
-  background: #e0e7ff;
+  background: #e0e7ff !important;
 }
 
 [data-theme="light"] .task-row.summary {
@@ -1383,12 +1392,96 @@ body {
   background: #f1f5f9;
 }
 
+[data-theme="light"] .search-input-wrap input,
+[data-theme="light"] .toolbar select,
+[data-theme="light"] .btn {
+  background: #ffffff;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+}
+
+[data-theme="light"] .btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+[data-theme="light"] .btn-primary {
+  background: linear-gradient(135deg, #4f46e5, #4338ca) !important;
+  color: #ffffff !important;
+  border-color: #4f46e5 !important;
+}
+
+[data-theme="light"] .modal-overlay {
+  background: rgba(15, 23, 42, 0.45);
+}
+
+[data-theme="light"] .modal-window {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .modal-footer {
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+[data-theme="light"] .form-group input,
+[data-theme="light"] .form-group textarea,
+[data-theme="light"] .form-group select {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+}
+
+[data-theme="light"] .project-item {
+  color: #334155;
+}
+
+[data-theme="light"] .project-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+[data-theme="light"] .project-item.active {
+  background: #e0e7ff;
+  color: #3730a3;
+  border-left-color: #4f46e5;
+}
+
+[data-theme="light"] .project-item-count {
+  background: #e2e8f0;
+  color: #475569;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .tip-q::after {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .context-menu {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .context-menu-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
 /* ==========================================================================
    STYLE MODES (Linear Bento, Microsoft Fluent 2, Classic Base)
    ========================================================================== */
 
 /* 1. Linear / High-Density Utility (Dark Mode Luxury & Bento) */
-[data-style="linear"] {
+[data-style="linear"][data-theme="dark"],
+[data-style="linear"]:not([data-theme="light"]) {
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --bg-primary: #08090d;
   --bg-secondary: #0d1117;
@@ -1404,14 +1497,42 @@ body {
   --shadow-md: 0 8px 24px -4px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
+/* Linear Style - Light Mode */
+[data-style="linear"][data-theme="light"] {
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --bg-card: #ffffff;
+  --border-color: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --accent-blue: #4f46e5;
+  --accent-blue-hover: #4338ca;
+  --accent-blue-glow: rgba(79, 70, 229, 0.2);
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
 [data-style="linear"] .btn-primary {
   background: linear-gradient(135deg, #6366f1, #4f46e5);
   box-shadow: 0 0 14px rgba(99, 102, 241, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-[data-style="linear"] .card,
-[data-style="linear"] .modal-window {
+[data-style="linear"][data-theme="light"] .card,
+[data-style="linear"][data-theme="light"] .modal-window {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+}
+
+[data-style="linear"]:not([data-theme="light"]) .card,
+[data-style="linear"]:not([data-theme="light"]) .modal-window {
   background: rgba(13, 17, 23, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -1420,7 +1541,7 @@ body {
 }
 
 [data-style="linear"] .task-row.selected {
-  background: rgba(99, 102, 241, 0.18) !important;
+  background: rgba(99, 102, 241, 0.14) !important;
   border-left: 3px solid #6366f1;
 }
 
