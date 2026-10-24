@@ -241,26 +241,26 @@ class AppController {
 
   bindEvents() {
     // Modals
-    document.getElementById('btn-new-project').addEventListener('click', () => {
+    document.getElementById('btn-new-project')?.addEventListener('click', () => {
       document.getElementById('project-form-start').value = DateUtils.formatISO(new Date());
       this.openModal('modal-project');
     });
 
-    document.getElementById('btn-save-project').addEventListener('click', () => this.handleSaveProject());
+    document.getElementById('btn-save-project')?.addEventListener('click', () => this.handleSaveProject());
 
     // Task manipulations
-    document.getElementById('btn-add-task').addEventListener('click', () => this.handleAddTask(false));
-    document.getElementById('btn-add-milestone').addEventListener('click', () => this.handleAddTask(true));
-    document.getElementById('btn-indent').addEventListener('click', () => this.handleIndent());
-    document.getElementById('btn-outdent').addEventListener('click', () => this.handleOutdent());
+    document.getElementById('btn-add-task')?.addEventListener('click', () => this.handleAddTask(false));
+    document.getElementById('btn-add-milestone')?.addEventListener('click', () => this.handleAddTask(true));
+    document.getElementById('btn-indent')?.addEventListener('click', () => this.handleIndent());
+    document.getElementById('btn-outdent')?.addEventListener('click', () => this.handleOutdent());
     document.getElementById('btn-create-group')?.addEventListener('click', () => this.handleCreateGroup());
     const btnEditTask = document.getElementById('btn-edit-task');
     if (btnEditTask) btnEditTask.addEventListener('click', () => this.handleOpenTaskCard());
-    document.getElementById('btn-move-up').addEventListener('click', () => this.handleMoveTask(-1));
-    document.getElementById('btn-move-down').addEventListener('click', () => this.handleMoveTask(1));
+    document.getElementById('btn-move-up')?.addEventListener('click', () => this.handleMoveTask(-1));
+    document.getElementById('btn-move-down')?.addEventListener('click', () => this.handleMoveTask(1));
     const btnSaveCard = document.getElementById('btn-save-task-card');
     if (btnSaveCard) btnSaveCard.addEventListener('click', () => this.handleSaveTaskCard());
-    document.getElementById('btn-delete-task').addEventListener('click', () => this.handleDeleteTask());
+    document.getElementById('btn-delete-task')?.addEventListener('click', () => this.handleDeleteTask());
 
     // Planning Mode & Baseline buttons (D-08, D-11)
     document.getElementById('btn-set-auto')?.addEventListener('click', () => this.handleSetSchedulingMode(false));
@@ -562,22 +562,22 @@ class AppController {
     if (btnImportPeer) {
       btnImportPeer.addEventListener('click', () => document.getElementById('input-peer-package').click());
     }
-    document.getElementById('input-peer-package').addEventListener('change', (e) => this.handleImportPeerPackage(e));
+    document.getElementById('input-peer-package')?.addEventListener('change', (e) => this.handleImportPeerPackage(e));
 
     // Return Diff actions
-    document.getElementById('btn-accept-diff').addEventListener('click', () => this.handleAcceptDiff());
-    document.getElementById('btn-reject-diff').addEventListener('click', () => {
+    document.getElementById('btn-accept-diff')?.addEventListener('click', () => this.handleAcceptDiff());
+    document.getElementById('btn-reject-diff')?.addEventListener('click', () => {
       this.pendingReturnPackage = null;
       this.closeModal('modal-diff');
       alert('Изменения отклонены');
     });
 
     // Workspace Backup
-    document.getElementById('btn-export-workspace').addEventListener('click', () => this.handleExportWorkspace());
-    document.getElementById('btn-import-workspace').addEventListener('click', () => {
-      document.getElementById('input-import-workspace').click();
+    document.getElementById('btn-export-workspace')?.addEventListener('click', () => this.handleExportWorkspace());
+    document.getElementById('btn-import-workspace')?.addEventListener('click', () => {
+      document.getElementById('input-import-workspace')?.click();
     });
-    document.getElementById('input-import-workspace').addEventListener('change', (e) => this.handleImportWorkspace(e));
+    document.getElementById('input-import-workspace')?.addEventListener('change', (e) => this.handleImportWorkspace(e));
 
     // Sidebar Toggle
     const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
@@ -602,16 +602,17 @@ class AppController {
       let startX = 0;
       let startWidth = 0;
 
-      resizer.addEventListener('mousedown', (e) => {
+      resizer.addEventListener('pointerdown', (e) => {
         isDragging = true;
         startX = e.clientX;
         startWidth = tablePanel.getBoundingClientRect().width;
         resizer.classList.add('dragging');
+        try { resizer.setPointerCapture(e.pointerId); } catch (_) {}
         document.body.style.cursor = 'col-resize';
         e.preventDefault();
       });
 
-      window.addEventListener('mousemove', (e) => {
+      resizer.addEventListener('pointermove', (e) => {
         if (!isDragging) return;
         const dx = e.clientX - startX;
         const newWidth = Math.max(280, Math.min(window.innerWidth * 0.75, startWidth + dx));
@@ -620,15 +621,19 @@ class AppController {
         this.gantt.render();
       });
 
-      window.addEventListener('mouseup', () => {
+      const endResize = (e) => {
         if (isDragging) {
           isDragging = false;
           resizer.classList.remove('dragging');
+          try { resizer.releasePointerCapture(e.pointerId); } catch (_) {}
           document.body.style.cursor = '';
           this.resizeCanvas(canvas);
           this.gantt.render();
         }
-      });
+      };
+
+      resizer.addEventListener('pointerup', endResize);
+      resizer.addEventListener('pointercancel', endResize);
     }
 
     // Column Resizing and Drag-and-Drop Reordering (D-04, D-11)
