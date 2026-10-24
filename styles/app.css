@@ -555,9 +555,24 @@ body {
 }
 
 .task-row.summary {
-  font-weight: 600;
+  font-weight: 700;
   color: #fff;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.task-row.is-child-task {
+  background: transparent;
+}
+
+.tree-branch-icon {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  opacity: 0.65;
+  margin-right: 6px;
+  user-select: none;
+  font-family: var(--font-mono);
+  display: inline-block;
+  line-height: 1;
 }
 
 .task-row.critical {

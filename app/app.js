@@ -645,7 +645,7 @@ class AppController {
       { id: 't18', external_number: '4.1', name: 'Миграция справочников и тестовых данных', duration_days: 4, percent_complete: 0, parent_id: 't17' },
       { id: 't19', external_number: '4.2', name: 'Обучение ключевых пользователей и регламенты', duration_days: 5, percent_complete: 0, parent_id: 't17' },
       { id: 't20', external_number: '4.3', name: 'Приёмо-сдаточные испытания (UAT)', duration_days: 5, percent_complete: 0, parent_id: 't17' },
-      { id: 't21', external_number: '4.4', name: 'Веха: Проект сдан заказчику в промышленную эксплуатацию', duration_days: 0, is_milestone: true, level: 0 }
+      { id: 't21', external_number: '4.4', name: 'Веха: Проект сдан заказчику в промышленную эксплуатацию', duration_days: 0, is_milestone: true, parent_id: 't17' }
     ];
 
     const demoDeps = [
@@ -967,14 +967,19 @@ class AppController {
 
     this.tasks.forEach((t, idx) => {
       const row = document.createElement('div');
-      row.className = `task-row ${t.is_summary ? 'summary' : ''} ${t.is_critical ? 'critical' : ''} ${this.selectedTaskId === t.id ? 'selected' : ''}`;
+      const isChild = (t.level || 0) > 0 || !!t.parent_id;
+      row.className = `task-row ${t.is_summary ? 'summary' : ''} ${t.is_critical ? 'critical' : ''} ${isChild ? 'is-child-task' : ''} ${this.selectedTaskId === t.id ? 'selected' : ''}`;
       
-      const indentPx = (t.level || 0) * 16;
+      // Micro-shift: 20px per level + 6px base shift for tree children
+      const indentPx = (t.level || 0) * 20 + (isChild ? 6 : 0);
       const predsStr = ValidationUtils.formatPredecessors(depsBySucc.get(t.id) || [], taskMap);
+
+      const treeBranchIcon = isChild ? `<span class="tree-branch-icon" title="Подзадача (WBS)">↳</span>` : '';
 
       row.innerHTML = `
         <div class="col-num" title="Потяните для изменения порядка задач" draggable="true">${t.external_number || (idx + 1)}</div>
         <div class="col-name" style="padding-left: ${indentPx + 8}px; display: flex; align-items: center;">
+          ${treeBranchIcon}
           ${t.is_milestone ? '<span class="milestone-badge" title="Контрольная точка (веха)"></span>' : ''}
           <input type="text" value="${t.name}" data-field="name" data-id="${t.id}">
         </div>
