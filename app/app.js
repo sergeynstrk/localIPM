@@ -173,7 +173,9 @@ class AppController {
     if (this.projects.length === 0) {
       await this.createDemoProject();
     } else {
-      await this.selectProject(this.projects[0].id);
+      const savedActiveId = localStorage.getItem('localpm_active_project_id');
+      const targetProj = this.projects.find(p => p.id === savedActiveId) || this.projects[0];
+      await this.selectProject(targetProj.id);
     }
   }
 
@@ -964,6 +966,9 @@ class AppController {
     const proj = await db.getProject(id);
     if (!proj) return;
     this.currentProject = proj;
+    try {
+      localStorage.setItem('localpm_active_project_id', id);
+    } catch (_) {}
 
     document.getElementById('current-project-badge').innerText = `• ${proj.name}`;
     document.getElementById('print-project-title').innerText = proj.name;

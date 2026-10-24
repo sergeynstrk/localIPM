@@ -691,67 +691,61 @@ export class GanttChart {
       ctx.lineWidth = isCritical ? 2 : 1.5;
 
       const isMilestone = !!succ.is_milestone || succ.duration_days === 0;
+      const targetX = isMilestone ? succStartX - 9 : succStartX;
+      const targetY = succY;
 
-      if (isMilestone) {
-        // Линия приходит сверху ромба вехи
-        const diamondTopY = succY - 9;
-        const targetX = succStartX;
+      // Draw arrow line
+      ctx.beginPath();
+      ctx.moveTo(predEndX, predY);
 
-        ctx.beginPath();
-        ctx.moveTo(predEndX, predY);
-        // Выходим вправо из предшественника, затем строго над вехой и опускаемся сверху вниз
-        if (targetX >= predEndX + 10) {
-          ctx.lineTo(targetX, predY);
-          ctx.lineTo(targetX, diamondTopY);
-        } else {
-          const midX = predEndX + 12;
-          ctx.lineTo(midX, predY);
-          const clearanceY = Math.min(predY, diamondTopY) - 10;
-          ctx.lineTo(midX, clearanceY);
-          ctx.lineTo(targetX, clearanceY);
-          ctx.lineTo(targetX, diamondTopY);
-        }
-        ctx.stroke();
+      const minXGap = 14;
 
-        // Стрелка вниз (в верхнюю вершину ромба)
-        ctx.beginPath();
-        ctx.moveTo(targetX, diamondTopY);
-        ctx.lineTo(targetX - 4, diamondTopY - 6);
-        ctx.lineTo(targetX + 4, diamondTopY - 6);
-        ctx.closePath();
-        ctx.fill();
+      if (targetX >= predEndX + minXGap) {
+        // Прямой ход по времени: выходим вправо до середины промежутка, спускаемся/поднимаемся строго к целевой строке
+        // Если succY > predY, стрелка идет СТРОГО ВНИЗ (predY -> succY), никогда не идет наверх
+        const midX = Math.round(predEndX + (targetX - predEndX) / 2);
+        ctx.lineTo(midX, predY);
+        ctx.lineTo(midX, targetY);
+        ctx.lineTo(targetX, targetY);
       } else {
-        // Обычная задача: линия всегда горизонтально входит в начало левой плашки
-        ctx.beginPath();
-        ctx.moveTo(predEndX, predY);
+        // Обратный ход или сильное перекрытие по времени: огибаем в межстрочном коридоре
+        const exitX = predEndX + 12;
+        const entryX = targetX - 12;
+        ctx.lineTo(exitX, predY);
 
-        if (succStartX >= predEndX + 16) {
-          // Стандартная лестница: вправо -> вниз/вверх -> прямо в левый край задачи
-          const midX = predEndX + Math.max(10, Math.min(24, (succStartX - predEndX) / 2));
-          ctx.lineTo(midX, predY);
-          ctx.lineTo(midX, succY);
-          ctx.lineTo(succStartX, succY);
+        if (succY > predY) {
+          // Идет ВНИЗ: промежуточный горизонтальный коридор строго между строками НИЖЕ predY
+          // Например, ровно под строкой предшественника или на середине между строками
+          const corridorY = Math.min(predY + rHeight / 2, (predY + succY) / 2);
+          ctx.lineTo(exitX, corridorY);
+          ctx.lineTo(entryX, corridorY);
+          ctx.lineTo(entryX, targetY);
+          ctx.lineTo(targetX, targetY);
+        } else if (succY < predY) {
+          // Идет ВВЕРХ: коридор строго ВЫШЕ predY
+          const corridorY = Math.max(predY - rHeight / 2, (predY + succY) / 2);
+          ctx.lineTo(exitX, corridorY);
+          ctx.lineTo(entryX, corridorY);
+          ctx.lineTo(entryX, targetY);
+          ctx.lineTo(targetX, targetY);
         } else {
-          // Обратный отступ: огибаем и заходим горизонтально слева
-          const midX = predEndX + 12;
-          const preInX = succStartX - 12;
-          ctx.lineTo(midX, predY);
-          const routeY = (predY + succY) / 2;
-          ctx.lineTo(midX, routeY);
-          ctx.lineTo(preInX, routeY);
-          ctx.lineTo(preInX, succY);
-          ctx.lineTo(succStartX, succY);
+          // На одной строке
+          const corridorY = predY + rHeight / 2;
+          ctx.lineTo(exitX, corridorY);
+          ctx.lineTo(entryX, corridorY);
+          ctx.lineTo(entryX, targetY);
+          ctx.lineTo(targetX, targetY);
         }
-        ctx.stroke();
-
-        // Горизонтальная стрелка вправо
-        ctx.beginPath();
-        ctx.moveTo(succStartX, succY);
-        ctx.lineTo(succStartX - 6, succY - 4);
-        ctx.lineTo(succStartX - 6, succY + 4);
-        ctx.closePath();
-        ctx.fill();
       }
+      ctx.stroke();
+
+      // Единая горизонтальная стрелка-наконечник, указывающая вправо на цель
+      ctx.beginPath();
+      ctx.moveTo(targetX, targetY);
+      ctx.lineTo(targetX - 6, targetY - 4);
+      ctx.lineTo(targetX - 6, targetY + 4);
+      ctx.closePath();
+      ctx.fill();
     });
   }
 
