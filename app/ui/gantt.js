@@ -202,14 +202,15 @@ export class GanttChart {
     ctx.setLineDash([]);
     ctx.lineWidth = 1;
 
-    // 2. Glowing target dot at the bottom
+    // 2. Glowing target dot at the top
     ctx.fillStyle = '#f59e0b';
     ctx.beginPath();
     ctx.arc(x, headerH + 6, 5, 0, Math.PI * 2);
     ctx.fill();
 
     // 3. Floating date and duration badge bubble
-    const label = `До: ${DateUtils.formatRU(guide.date)} (${guide.days} дн.)`;
+    const prefix = guide.prefix || (guide.isLeft ? 'С:' : 'До:');
+    const label = `${prefix} ${DateUtils.formatRU(guide.date)} (${guide.days} дн.)`;
     ctx.font = 'bold 11px "JetBrains Mono", monospace';
     const textW = ctx.measureText(label).width;
     const badgeW = textW + 16;
@@ -586,9 +587,12 @@ export class GanttChart {
         ctx.fillStyle = '#f8fafc';
         ctx.fillText(labelText, tx, ty + 12);
 
-        // 1. Visual Resize Handle Grip on right edge of bar (Stretch duration)
+        // Visual Resize Handle Grips on both left (into past) and right (into future) edges of bar
         if (!t.is_summary) {
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+          // Left resize grip (stretch into past)
+          ctx.fillRect(startX + 1, barY + 3, 3, barH - 6);
+          // Right resize grip (stretch into future)
           const hX = finishX - 4;
           ctx.fillRect(hX, barY + 3, 3, barH - 6);
 
@@ -779,9 +783,19 @@ export class GanttChart {
   initEvents() {
     let isPanning = false;
     let isResizing = false;
+    let resizeMode = null; // 'left' | 'right'
     let resizingTask = null;
     let initialDuration = 0;
+    let initialStartDate = null;
+    let initialFinishDate = null;
     let resizeStartX = 0;
+
+    let isMoving = false;
+    let movingTask = null;
+    let moveStartX = 0;
+    let initialTaskStart = null;
+    let lastCalculatedStart = null;
+
     let startX = 0;
     let startY = 0;
 
@@ -814,11 +828,12 @@ export class GanttChart {
       const distToArrow = Math.hypot(mouseX - arrowCenterX, mouseY - arrowCenterY);
       const isArrowButton = distToArrow <= 12;
 
-      // 2. Right edge resize handle (within bar's right border: finishX - 8 to finishX + 3)
+      // 2. Resize handles
+      const isNearLeftEdge = !isArrowButton && (mouseX >= barStartX - 4 && mouseX <= barStartX + 8);
       const isNearRightEdge = !isArrowButton && (mouseX >= finishX - 8 && mouseX <= finishX + 4);
 
       // 3. Target Inport on the left (startX - 6, barY + barH / 2)
-      const distToInPort = Math.hypot(mouseX - (startX - 6), mouseY - (barY + barH / 2));
+      const distToInPort = Math.hypot(mouseX - (barStartX - 6), mouseY - (barY + barH / 2));
       const isInPort = distToInPort <= 12;
 
       const isInsideBar = mouseX >= barStartX && mouseX <= finishX;
@@ -826,12 +841,16 @@ export class GanttChart {
       return {
         task,
         rowIndex,
-        isHandle: isNearRightEdge,
+        isLeftHandle: isNearLeftEdge,
+        isRightHandle: isNearRightEdge,
+        isHandle: isNearRightEdge || isNearLeftEdge,
         isArrowButton,
         isInPort,
         arrowX: arrowCenterX,
         arrowY: arrowCenterY,
         isInside: isInsideBar,
+        barStartX,
+        finishX,
         mouseX,
         mouseY
       };
@@ -882,7 +901,7 @@ export class GanttChart {
     this.canvas.addEventListener('mousedown', (e) => {
       const hit = getTaskAtPos(e.clientX, e.clientY);
 
-      // Start Drag-to-Link from Draw.io Arrow Button
+      // 1. Start Drag-to-Link from Draw.io Arrow Button
       if (hit && hit.isArrowButton) {
         this.dragLink = {
           active: true,
@@ -896,13 +915,46 @@ export class GanttChart {
         return;
       }
 
-      if (hit && hit.isHandle && !hit.task.is_summary && !hit.task.is_milestone) {
-        // Start duration resize
+      // 2. Left Edge Handle: Stretch duration into past (shifts start_date earlier)
+      if (hit && hit.isLeftHandle && !hit.task.is_summary && !hit.task.is_milestone) {
         isResizing = true;
+        resizeMode = 'left';
         resizingTask = hit.task;
         initialDuration = hit.task.duration_days || 1;
+        initialStartDate = hit.task.start_date;
+        initialFinishDate = hit.task.finish_date;
         resizeStartX = e.clientX;
         this.canvas.style.cursor = 'ew-resize';
+        e.preventDefault();
+        return;
+      }
+
+      // 3. Right Edge Handle: Stretch duration into future (shifts finish_date later)
+      if (hit && hit.isRightHandle && !hit.task.is_summary && !hit.task.is_milestone) {
+        isResizing = true;
+        resizeMode = 'right';
+        resizingTask = hit.task;
+        initialDuration = hit.task.duration_days || 1;
+        initialStartDate = hit.task.start_date;
+        initialFinishDate = hit.task.finish_date;
+        resizeStartX = e.clientX;
+        this.canvas.style.cursor = 'ew-resize';
+        e.preventDefault();
+        return;
+      }
+
+      // 4. Click inside task bar (body) -> Select and start Move (drag bar along timeline)
+      if (hit && hit.isInside && !hit.task.is_summary && !hit.task.is_milestone) {
+        this.selectedTaskId = hit.task.id;
+        if (this.onTaskSelect) this.onTaskSelect(hit.task.id);
+
+        isMoving = true;
+        movingTask = hit.task;
+        moveStartX = e.clientX;
+        initialTaskStart = hit.task.start_date;
+        lastCalculatedStart = hit.task.start_date;
+        this.canvas.style.cursor = 'grabbing';
+        this.render();
         e.preventDefault();
         return;
       }
@@ -913,34 +965,72 @@ export class GanttChart {
         this.render();
       }
 
-      // Default: panning
+      // Default: canvas panning
       isPanning = true;
       startX = e.clientX;
       startY = e.clientY;
     });
 
     window.addEventListener('mousemove', (e) => {
+      // 1. Moving entire task bar along timeline
+      if (isMoving && movingTask) {
+        const dx = e.clientX - moveStartX;
+        const daysDiff = Math.round(dx / this.options.dayWidth);
+        const projectedStart = DateUtils.addLagWorkingDays(initialTaskStart, daysDiff, this.calendar);
+        lastCalculatedStart = projectedStart;
+
+        const startX = this.dateToX(projectedStart) - this.scrollX;
+        this.activeResizeGuide = {
+          x: startX,
+          date: projectedStart,
+          days: movingTask.duration_days || 1,
+          prefix: 'Перенос на:'
+        };
+        this.render();
+        return;
+      }
+
+      // 2. Resizing task duration (Left into past or Right into future)
       if (isResizing && resizingTask) {
         const dx = e.clientX - resizeStartX;
         const daysDiff = Math.round(dx / this.options.dayWidth);
-        const newDuration = Math.max(1, initialDuration + daysDiff);
 
-        if (resizingTask.duration_days !== newDuration) {
-          resizingTask.duration_days = newDuration;
-          if (this.onTaskDurationChange) {
-            this.onTaskDurationChange(resizingTask.id, newDuration);
+        if (resizeMode === 'right') {
+          const newDuration = Math.max(1, initialDuration + daysDiff);
+          if (resizingTask.duration_days !== newDuration) {
+            resizingTask.duration_days = newDuration;
+            if (this.onTaskDurationChange) {
+              this.onTaskDurationChange(resizingTask.id, newDuration);
+            }
+          }
+
+          const projectedFinish = DateUtils.addWorkingDays(resizingTask.start_date, newDuration, this.calendar);
+          const finishX = this.dateToX(projectedFinish) + (this.options.scale === 'day' ? this.options.dayWidth : 0) - this.scrollX;
+
+          this.activeResizeGuide = {
+            x: finishX,
+            date: projectedFinish,
+            days: newDuration,
+            prefix: 'До:'
+          };
+        } else if (resizeMode === 'left') {
+          // Left handle: moving left (dx < 0) shifts start into the past and increases duration
+          const projectedStart = DateUtils.addLagWorkingDays(initialStartDate, daysDiff, this.calendar);
+          // Don't allow start to exceed finish date
+          if (projectedStart <= initialFinishDate) {
+            const calculatedDuration = Math.max(1, DateUtils.diffWorkingDays(projectedStart, initialFinishDate, this.calendar));
+            resizingTask.start_date = projectedStart;
+            resizingTask.duration_days = calculatedDuration;
+
+            const startX = this.dateToX(projectedStart) - this.scrollX;
+            this.activeResizeGuide = {
+              x: startX,
+              date: projectedStart,
+              days: calculatedDuration,
+              prefix: 'С:'
+            };
           }
         }
-
-        // Calculate projected finish date based on start_date and newDuration
-        const projectedFinish = DateUtils.addWorkingDays(resizingTask.start_date, newDuration, this.calendar);
-        const finishX = this.dateToX(projectedFinish) + (this.options.scale === 'day' ? this.options.dayWidth : 0) - this.scrollX;
-
-        this.activeResizeGuide = {
-          x: finishX,
-          date: projectedFinish,
-          days: newDuration
-        };
 
         this.render();
         return;
@@ -971,16 +1061,51 @@ export class GanttChart {
         this.render();
       }
 
-      if (isResizing) {
+      // Moving task bar commit
+      if (isMoving && movingTask) {
+        const movedId = movingTask.id;
+        const finalStart = lastCalculatedStart;
+        const initialStart = initialTaskStart;
+        isMoving = false;
+        movingTask = null;
+        this.activeResizeGuide = null;
+        this.canvas.style.cursor = 'default';
+        this.render();
+
+        if (finalStart && finalStart !== initialStart) {
+          if (this.onTaskMove) {
+            this.onTaskMove(movedId, finalStart);
+          }
+        }
+      }
+
+      // Resizing commit
+      if (isResizing && resizingTask) {
+        const currMode = resizeMode;
+        const taskId = resizingTask.id;
+        const finalStartDate = resizingTask.start_date;
+        const finalDuration = resizingTask.duration_days;
+
         isResizing = false;
+        resizeMode = null;
         resizingTask = null;
         this.activeResizeGuide = null;
         this.canvas.style.cursor = 'default';
         this.render();
-        if (this.onTaskDurationCommit) {
-          this.onTaskDurationCommit();
+
+        if (currMode === 'left') {
+          if (this.onTaskStretchLeft) {
+            this.onTaskStretchLeft(taskId, finalStartDate, finalDuration);
+          } else if (this.onTaskDurationCommit) {
+            this.onTaskDurationCommit();
+          }
+        } else if (currMode === 'right') {
+          if (this.onTaskDurationCommit) {
+            this.onTaskDurationCommit();
+          }
         }
       }
+
       isPanning = false;
     });
 

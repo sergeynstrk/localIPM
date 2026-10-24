@@ -87,6 +87,25 @@ class AppController {
       this.recalculateSchedule();
     };
 
+    // Timeline bar drag-and-drop: move task start date and cascade dependent successors via CPM forward pass
+    this.gantt.onTaskMove = (taskId, newStartDate) => {
+      const task = this.tasks.find(t => t.id === taskId);
+      if (!task) return;
+      task.start_date = newStartDate;
+      task.constraint_snet = newStartDate; // Start No Earlier Than constraint ensures CPM cascade
+      this.recalculateSchedule();
+    };
+
+    // Stretch duration into the past from left handle
+    this.gantt.onTaskStretchLeft = (taskId, newStartDate, newDuration) => {
+      const task = this.tasks.find(t => t.id === taskId);
+      if (!task) return;
+      task.start_date = newStartDate;
+      task.duration_days = newDuration;
+      task.constraint_snet = newStartDate;
+      this.recalculateSchedule();
+    };
+
     // Drag-to-Link: create dependency on canvas connect
     this.gantt.onLinkCreated = (predId, succId, type = 'FS', lag = 0) => {
       // Check if dependency already exists

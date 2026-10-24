@@ -156,7 +156,11 @@ export const CpmEngine = {
         }
       }
 
-      if (t.start_date && !t.is_manual && preds.length === 0) {
+      if (t.constraint_snet) {
+        if (t.constraint_snet > earliestAllowedStart) {
+          earliestAllowedStart = t.constraint_snet;
+        }
+      } else if (t.start_date && !t.is_manual && preds.length === 0) {
         // If start date was explicitly set by user and no predecessors
         if (t.start_date > earliestAllowedStart) {
           earliestAllowedStart = t.start_date;
