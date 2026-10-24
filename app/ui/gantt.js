@@ -625,22 +625,68 @@ export class GanttChart {
       ctx.fillStyle = isCritical ? '#ef4444' : '#64748b';
       ctx.lineWidth = isCritical ? 2 : 1.5;
 
-      // Orthogonal arrow routing
-      ctx.beginPath();
-      ctx.moveTo(predEndX, predY);
-      const midX = predEndX + 12;
-      ctx.lineTo(midX, predY);
-      ctx.lineTo(midX, succY);
-      ctx.lineTo(succStartX, succY);
-      ctx.stroke();
+      const isMilestone = !!succ.is_milestone || succ.duration_days === 0;
 
-      // Arrow head
-      ctx.beginPath();
-      ctx.moveTo(succStartX, succY);
-      ctx.lineTo(succStartX - 6, succY - 4);
-      ctx.lineTo(succStartX - 6, succY + 4);
-      ctx.closePath();
-      ctx.fill();
+      if (isMilestone) {
+        // Линия приходит сверху ромба вехи
+        const diamondTopY = succY - 9;
+        const targetX = succStartX;
+
+        ctx.beginPath();
+        ctx.moveTo(predEndX, predY);
+        // Выходим вправо из предшественника, затем строго над вехой и опускаемся сверху вниз
+        if (targetX >= predEndX + 10) {
+          ctx.lineTo(targetX, predY);
+          ctx.lineTo(targetX, diamondTopY);
+        } else {
+          const midX = predEndX + 12;
+          ctx.lineTo(midX, predY);
+          const clearanceY = Math.min(predY, diamondTopY) - 10;
+          ctx.lineTo(midX, clearanceY);
+          ctx.lineTo(targetX, clearanceY);
+          ctx.lineTo(targetX, diamondTopY);
+        }
+        ctx.stroke();
+
+        // Стрелка вниз (в верхнюю вершину ромба)
+        ctx.beginPath();
+        ctx.moveTo(targetX, diamondTopY);
+        ctx.lineTo(targetX - 4, diamondTopY - 6);
+        ctx.lineTo(targetX + 4, diamondTopY - 6);
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        // Обычная задача: линия всегда горизонтально входит в начало левой плашки
+        ctx.beginPath();
+        ctx.moveTo(predEndX, predY);
+
+        if (succStartX >= predEndX + 16) {
+          // Стандартная лестница: вправо -> вниз/вверх -> прямо в левый край задачи
+          const midX = predEndX + Math.max(10, Math.min(24, (succStartX - predEndX) / 2));
+          ctx.lineTo(midX, predY);
+          ctx.lineTo(midX, succY);
+          ctx.lineTo(succStartX, succY);
+        } else {
+          // Обратный отступ: огибаем и заходим горизонтально слева
+          const midX = predEndX + 12;
+          const preInX = succStartX - 12;
+          ctx.lineTo(midX, predY);
+          const routeY = (predY + succY) / 2;
+          ctx.lineTo(midX, routeY);
+          ctx.lineTo(preInX, routeY);
+          ctx.lineTo(preInX, succY);
+          ctx.lineTo(succStartX, succY);
+        }
+        ctx.stroke();
+
+        // Горизонтальная стрелка вправо
+        ctx.beginPath();
+        ctx.moveTo(succStartX, succY);
+        ctx.lineTo(succStartX - 6, succY - 4);
+        ctx.lineTo(succStartX - 6, succY + 4);
+        ctx.closePath();
+        ctx.fill();
+      }
     });
   }
 
