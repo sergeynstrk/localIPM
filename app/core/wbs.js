@@ -135,5 +135,93 @@ export const WbsUtils = {
       }
       return t;
     });
+  },
+
+  // Find all descendant IDs of given root task IDs
+  subtreeIds(tasks, rootIds) {
+    const set = new Set(rootIds);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      tasks.forEach(t => {
+        if (set.has(t.parent_id) && !set.has(t.id)) {
+          set.add(t.id);
+          changed = true;
+        }
+      });
+    }
+    return set;
+  },
+
+  // Structural reorder & reparenting with level clamping: level = clamp(target, 0, rowAbove.level + 1)
+  applyStructuralMove(project, rootIds, target) {
+    if (!project || !project.tasks || !rootIds || !rootIds.length) return false;
+    const tasks = project.tasks;
+    const blockSet = this.subtreeIds(tasks, rootIds);
+    if (target.beforeId && blockSet.has(target.beforeId)) return false;
+
+    const roots = rootIds.map(id => tasks.find(t => t.id === id)).filter(Boolean);
+    if (!roots.length) return false;
+
+    // Build visible/ordered list
+    const ordered = [...tasks].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    const firstRoot = ordered.find(r => r.id === roots[0].id);
+    const rootLevel = firstRoot ? (firstRoot.level || 0) : 0;
+
+    const remaining = ordered.filter(r => !blockSet.has(r.id));
+    let idx = target.beforeId ? remaining.findIndex(r => r.id === target.beforeId) : remaining.length;
+    if (idx < 0) idx = remaining.length;
+
+    const rowAbove = remaining[idx - 1];
+    const maxLevel = rowAbove ? (rowAbove.level || 0) + 1 : 0;
+    const targetLevel = target.level !== undefined ? target.level : rootLevel;
+    const level = Math.min(Math.max(0, targetLevel), maxLevel);
+    const delta = level - rootLevel;
+
+    const blockRows = ordered.filter(r => blockSet.has(r.id)).map(r => ({
+      ...r,
+      level: Math.max(0, (r.level || 0) + delta)
+    }));
+
+    const newOrdered = [...remaining.slice(0, idx), ...blockRows, ...remaining.slice(idx)];
+
+    // Reparent moved roots based on level
+    roots.forEach(rt => {
+      const pos = newOrdered.findIndex(r => r.id === rt.id);
+      const myLevel = newOrdered[pos].level;
+      let pid = null;
+      for (let i = pos - 1; i >= 0; i--) {
+        if (newOrdered[i].level <= myLevel - 1) {
+          pid = newOrdered[i].id;
+          break;
+        }
+      }
+      rt.parent_id = pid;
+    });
+
+    // Guard against circular parent references
+    roots.forEach(rt => {
+      let cur = rt;
+      let guard = 0;
+      while (cur && cur.parent_id && guard++ < 60) {
+        if (cur.parent_id === rt.id) {
+          rt.parent_id = null;
+          break;
+        }
+        cur = tasks.find(t => t.id === cur.parent_id);
+      }
+    });
+
+    // Update sort_order for all tasks based on new sequence
+    const posMap = new Map();
+    newOrdered.forEach((r, i) => posMap.set(r.id, i));
+    tasks.forEach(t => {
+      if (posMap.has(t.id)) {
+        t.sort_order = posMap.get(t.id);
+      }
+    });
+
+    tasks.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    return true;
   }
 };

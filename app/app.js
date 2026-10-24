@@ -4,6 +4,7 @@
  */
 
 import { db } from './storage/db.js';
+import { SyncEngine } from './storage/sync.js';
 import { DateUtils } from './core/dates.js';
 import { ValidationUtils } from './core/validation.js';
 import { WbsUtils } from './core/wbs.js';
@@ -19,8 +20,21 @@ class AppController {
     this.tasks = [];
     this.dependencies = [];
     this.selectedTaskId = null;
+    this.selectedIds = [];
+    this.anchorId = null;
     this.gantt = null;
     this.pendingReturnPackage = null;
+    this.sync = new SyncEngine(this);
+
+    // 50-snapshot Undo/Redo stack (D-09)
+    this.history = {
+      undo: [],
+      redo: []
+    };
+
+    // UI Theme & Style
+    this.theme = localStorage.getItem('localpm_theme') || 'auto';
+    this.uiStyle = localStorage.getItem('localpm_style') || 'bento';
   }
 
   async init() {
@@ -144,7 +158,13 @@ class AppController {
     // 4. Bind UI Event Listeners
     this.bindEvents();
 
-    // 5. Load Projects
+    // 5. Apply Theme & UI Style
+    this.applyTheme();
+
+    // 6. Init Sync Engine (localpm-data.json / File System Access API)
+    await this.sync.init();
+
+    // 7. Load Projects
     await this.loadProjects();
 
     // If no projects exist, create demo project
@@ -180,10 +200,20 @@ class AppController {
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
     
-    const icon = type === 'success' ? '✓' : (type === 'error' ? '✕' : (type === 'warning' ? '⚠️' : 'ℹ️'));
+    let iconSvg = '';
+    if (type === 'success') {
+      iconSvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
+    } else if (type === 'error') {
+      iconSvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+    } else if (type === 'warning') {
+      iconSvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+    } else {
+      iconSvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+    }
+
     toast.innerHTML = `
       <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="font-weight: 700;">${icon}</span>
+        <span style="display: flex; align-items: center;">${iconSvg}</span>
         <span>${message}</span>
       </div>
     `;
@@ -392,11 +422,51 @@ class AppController {
       this.openModal('modal-shortcuts');
     });
 
-    // Keyboard Shortcuts (FR-6.08: Insert, Delete, Alt+Up, Alt+Down, ?)
+    // Undo / Redo buttons
+    document.getElementById('btn-undo')?.addEventListener('click', () => this.undo());
+    document.getElementById('btn-redo')?.addEventListener('click', () => this.redo());
+
+    // DB Chip & Modals
+    document.getElementById('db-chip')?.addEventListener('click', () => this.openDbSettingsModal());
+    document.getElementById('btn-db-link-file')?.addEventListener('click', () => this.sync.linkViaFS());
+    document.getElementById('btn-db-save-file')?.addEventListener('click', () => this.sync.createViaFS());
+    document.getElementById('btn-db-open-input')?.addEventListener('click', () => this.sync.openFileViaInput());
+    document.getElementById('btn-db-download')?.addEventListener('click', () => this.sync.downloadCopy());
+
+    // DB Conflict resolution buttons
+    document.getElementById('btn-conflict-use-file')?.addEventListener('click', () => this.sync.resolveConflict('file'));
+    document.getElementById('btn-conflict-use-local')?.addEventListener('click', () => this.sync.resolveConflict('local'));
+
+    // Theme selector
+    const selTheme = document.getElementById('select-theme');
+    if (selTheme) {
+      selTheme.value = this.theme;
+      selTheme.addEventListener('change', (e) => {
+        this.theme = e.target.value;
+        localStorage.setItem('localpm_theme', this.theme);
+        this.applyTheme();
+      });
+    }
+
+    // Test Runner
+    document.getElementById('btn-run-tests')?.addEventListener('click', () => this.runTestSuite());
+    document.getElementById('btn-print-test-protocol')?.addEventListener('click', () => window.print());
+
+    // Keyboard Shortcuts (FR-6.08: Insert, Delete, Alt+Up, Alt+Down, Ctrl+Z, Ctrl+Y, ?)
     window.addEventListener('keydown', (e) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
 
-      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          this.redo();
+        } else {
+          this.undo();
+        }
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        this.redo();
+      } else if (e.key === '?' || (e.shiftKey && e.key === '/')) {
         e.preventDefault();
         this.openModal('modal-shortcuts');
       } else if (e.key === 'Insert') {
@@ -504,11 +574,165 @@ class AppController {
   }
 
   openModal(id) {
-    document.getElementById(id).classList.add('open');
+    const el = document.getElementById(id);
+    if (el) el.classList.add('open');
   }
 
   closeModal(id) {
-    document.getElementById(id).classList.remove('open');
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('open');
+  }
+
+  applyTheme() {
+    let mode = this.theme;
+    if (mode === 'auto') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      mode = prefersDark ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', mode);
+    document.documentElement.setAttribute('data-style', this.uiStyle);
+  }
+
+  pushHistory() {
+    if (!this.currentProject) return;
+    const snapshot = {
+      projects: JSON.parse(JSON.stringify(this.projects)),
+      currentProjectId: this.currentProject.id,
+      selectedTaskId: this.selectedTaskId,
+      selectedIds: [...this.selectedIds]
+    };
+    this.history.undo.push(snapshot);
+    if (this.history.undo.length > 50) {
+      this.history.undo.shift();
+    }
+    this.history.redo = [];
+  }
+
+  async undo() {
+    if (this.history.undo.length === 0) {
+      this.showToast('Нечего отменять', 'info');
+      return;
+    }
+    const currentSnapshot = {
+      projects: JSON.parse(JSON.stringify(this.projects)),
+      currentProjectId: this.currentProject ? this.currentProject.id : null,
+      selectedTaskId: this.selectedTaskId,
+      selectedIds: [...this.selectedIds]
+    };
+    this.history.redo.push(currentSnapshot);
+
+    const prev = this.history.undo.pop();
+    this.projects = prev.projects;
+    this.selectedTaskId = prev.selectedTaskId;
+    this.selectedIds = prev.selectedIds || [];
+    if (prev.currentProjectId) {
+      await this.selectProject(prev.currentProjectId);
+    } else {
+      this.render();
+    }
+    this.sync.markDirty();
+    this.showToast('Действие отменено (Undo)', 'info');
+  }
+
+  async redo() {
+    if (this.history.redo.length === 0) {
+      this.showToast('Нечего повторять', 'info');
+      return;
+    }
+    const currentSnapshot = {
+      projects: JSON.parse(JSON.stringify(this.projects)),
+      currentProjectId: this.currentProject ? this.currentProject.id : null,
+      selectedTaskId: this.selectedTaskId,
+      selectedIds: [...this.selectedIds]
+    };
+    this.history.undo.push(currentSnapshot);
+
+    const next = this.history.redo.pop();
+    this.projects = next.projects;
+    this.selectedTaskId = next.selectedTaskId;
+    this.selectedIds = next.selectedIds || [];
+    if (next.currentProjectId) {
+      await this.selectProject(next.currentProjectId);
+    } else {
+      this.render();
+    }
+    this.sync.markDirty();
+    this.showToast('Действие повторено (Redo)', 'info');
+  }
+
+  openDbSettingsModal() {
+    const fn = document.getElementById('db-modal-filename');
+    const md = document.getElementById('db-modal-mode');
+    const st = document.getElementById('db-modal-status');
+    const sa = document.getElementById('db-modal-saved-at');
+
+    if (fn) fn.textContent = this.sync.fileName;
+    if (md) {
+      const modeNames = {
+        file: 'Файл подключён (FileSystem API, автосохранение 700 мс)',
+        fetch: 'Файл прочитан рядом (Fetch, только чтение)',
+        'local-pending': 'Ожидается разрешение доступа к файлу',
+        local: 'Локальный кэш (IndexedDB)'
+      };
+      md.textContent = modeNames[this.sync.dbMode] || this.sync.dbMode;
+    }
+    if (st) st.textContent = this.sync.fileDirty ? 'Есть несохранённые изменения' : 'Синхронно';
+    if (sa) sa.textContent = this.sync.fileSavedAt ? new Date(this.sync.fileSavedAt).toLocaleString('ru-RU') : '—';
+
+    this.openModal('modal-db-settings');
+  }
+
+  showConflictModal() {
+    this.openModal('modal-db-conflict');
+  }
+
+  async renderAfterSync() {
+    await this.loadProjects();
+    if (this.projects.length) {
+      await this.selectProject(this.projects[0].id);
+    }
+  }
+
+  async runTestSuite() {
+    this.openModal('modal-test-runner');
+    const list = document.getElementById('test-results-list');
+    const summary = document.getElementById('test-summary-badge');
+    if (!list || !summary) return;
+
+    list.innerHTML = 'Запуск проверок…';
+    summary.style.background = 'var(--bg-tertiary)';
+    summary.style.color = 'var(--text-primary)';
+    summary.textContent = 'Выполняются 25 проверок (Спецификация D-01..D-14, R2-01..R2-12)...';
+
+    try {
+      const { runAllTests } = await import('./test_runner.js');
+      const results = await runAllTests(this);
+      
+      list.innerHTML = '';
+      let passedCount = 0;
+      results.forEach(r => {
+        if (r.passed) passedCount++;
+        const item = document.createElement('div');
+        item.style.padding = '4px 6px';
+        item.style.borderRadius = '3px';
+        item.style.color = r.passed ? '#10b981' : '#f43f5e';
+        item.style.background = r.passed ? 'rgba(16, 185, 129, 0.08)' : 'rgba(244, 63, 94, 0.08)';
+        item.textContent = `${r.passed ? '✓ PASS' : '✗ FAIL'}: [${r.code}] ${r.name} ${r.error ? '— ' + r.error : ''}`;
+        list.appendChild(item);
+      });
+
+      if (passedCount === results.length) {
+        summary.style.background = 'rgba(16, 185, 129, 0.2)';
+        summary.style.color = '#10b981';
+        summary.textContent = `Все проверки успешно пройдены: ${passedCount} из ${results.length} (100%)`;
+      } else {
+        summary.style.background = 'rgba(244, 63, 94, 0.2)';
+        summary.style.color = '#f43f5e';
+        summary.textContent = `Пройдено: ${passedCount} из ${results.length}. Ошибок: ${results.length - passedCount}`;
+      }
+    } catch (e) {
+      list.innerHTML = `<span style="color: #f43f5e;">Ошибка запуска тестов: ${e.message}</span>`;
+    }
   }
 
   // --- Projects Registry ---
@@ -756,8 +980,11 @@ class AppController {
     // Save to DB only if NOT in What-If Sandbox mode
     if (!this.isSandbox) {
       this.currentProject.task_count = this.tasks.length;
+      this.currentProject.tasks = this.tasks;
+      this.currentProject.dependencies = this.dependencies;
       db.saveProject(this.currentProject);
       db.saveProjectPlan(this.currentProject.id, this.tasks, this.dependencies);
+      this.sync.markDirty();
 
       // Update active project count in sidebar badge without full reload
       const activeBadge = document.querySelector('.project-item.active .project-item-count');
@@ -854,13 +1081,20 @@ class AppController {
     if (listEl) {
       listEl.innerHTML = '';
       if (issues.length === 0) {
-        listEl.innerHTML = '<div style="color: #10b981; font-size: 0.85rem; padding: 12px; background: rgba(16, 185, 129, 0.08); border-radius: 6px;">Замечаний не найдено. План полностью соответствует стандартам управления проектами!</div>';
+        listEl.innerHTML = '<div style="color: #10b981; font-size: 0.85rem; padding: 12px; background: rgba(16, 185, 129, 0.08); border-radius: 6px; display: flex; align-items: center; gap: 8px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <span>Замечаний не найдено. План полностью соответствует стандартам управления проектами!</span></div>';
       } else {
         issues.forEach(iss => {
           const item = document.createElement('div');
           item.className = `issue-item ${iss.severity || 'info'}`;
-          const icon = iss.severity === 'error' ? '❌' : (iss.severity === 'warning' ? '⚠️' : 'ℹ️');
-          item.innerHTML = `<span>${icon}</span><span style="flex: 1;">${iss.message}</span>`;
+          let iconSvg = '';
+          if (iss.severity === 'error') {
+            iconSvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+          } else if (iss.severity === 'warning') {
+            iconSvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+          } else {
+            iconSvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+          }
+          item.innerHTML = `<span style="display: flex; align-items: center; padding-top: 2px;">${iconSvg}</span><span style="flex: 1;">${iss.message}</span>`;
           if (iss.taskId) {
             item.style.cursor = 'pointer';
             item.title = 'Нажмите для перехода к задаче';
@@ -922,13 +1156,18 @@ class AppController {
 
       const row = document.createElement('div');
       row.className = 'resource-row';
+      const statusBadge = isOverallocated
+        ? '<span style="color: #f87171; display: inline-flex; align-items: center; gap: 3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Перегруз</span>'
+        : '<span style="color: #34d399; display: inline-flex; align-items: center; gap: 3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Норма</span>';
+
       row.innerHTML = `
         <div class="resource-name" title="${owner}">${owner}</div>
         <div class="resource-bar-track">
           <div class="resource-bar-fill" style="width: ${pct}%; background: ${isOverallocated ? 'linear-gradient(90deg, #f59e0b, #ef4444)' : 'linear-gradient(90deg, #6366f1, #3b82f6)'};"></div>
         </div>
-        <div style="font-family: var(--font-mono); font-size: 0.74rem; width: 110px; text-align: right; color: ${isOverallocated ? '#fca5a5' : '#cbd5e1'};">
-          ${data.totalDays} дн. (${data.taskCount} зад.) ${isOverallocated ? '⚠️ Перегруз' : '✓ Ок'}
+        <div style="font-family: var(--font-mono); font-size: 0.74rem; width: 130px; text-align: right; color: ${isOverallocated ? '#fca5a5' : '#cbd5e1'}; display: flex; align-items: center; justify-content: flex-end; gap: 6px;">
+          <span>${data.totalDays} дн. (${data.taskCount} зад.)</span>
+          ${statusBadge}
         </div>
       `;
       listEl.appendChild(row);
@@ -1209,6 +1448,8 @@ class AppController {
       document.activeElement.blur();
     }
 
+    this.pushHistory();
+
     const newId = `task-${Date.now()}`;
     const selectedIndex = this.selectedTaskId 
       ? this.tasks.findIndex(t => t.id === this.selectedTaskId) 
@@ -1257,12 +1498,14 @@ class AppController {
 
   handleIndent() {
     if (!this.selectedTaskId) return;
+    this.pushHistory();
     this.tasks = WbsUtils.indent(this.tasks, this.selectedTaskId);
     this.recalculateSchedule();
   }
 
   handleOutdent() {
     if (!this.selectedTaskId) return;
+    this.pushHistory();
     this.tasks = WbsUtils.outdent(this.tasks, this.selectedTaskId);
     this.recalculateSchedule();
   }
@@ -1281,6 +1524,8 @@ class AppController {
         return;
       }
     }
+
+    this.pushHistory();
 
     const id = this.selectedTaskId;
     const taskIndex = this.tasks.findIndex(t => t.id === id);
@@ -1324,6 +1569,8 @@ class AppController {
 
     const targetIndex = index + direction;
     if (targetIndex < 0 || targetIndex >= this.tasks.length) return;
+
+    this.pushHistory();
 
     // Swap tasks
     const [moved] = this.tasks.splice(index, 1);

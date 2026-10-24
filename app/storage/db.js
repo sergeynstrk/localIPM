@@ -185,6 +185,55 @@ class LocalPMDatabase {
     });
   }
 
+  // Retrieve project with embedded tasks and dependencies
+  async getFullProject(projectId) {
+    const project = await this.getProject(projectId);
+    if (!project) return null;
+    const tasks = await this.getProjectTasks(projectId);
+    const dependencies = await this.getProjectDependencies(projectId);
+    return {
+      ...project,
+      tasks,
+      dependencies
+    };
+  }
+
+  // Load all projects with their tasks and dependencies (for mirroring/saving localpm-data.json)
+  async getAllFullProjects() {
+    const projects = await this.getAllProjects();
+    const full = [];
+    for (const p of projects) {
+      const fullP = await this.getFullProject(p.id);
+      if (fullP) full.push(fullP);
+    }
+    return full;
+  }
+
+  // Replace all projects in IndexedDB with the provided full project array
+  async replaceAllProjects(projects) {
+    await this.init();
+    return this.withTx(['projects', 'tasks', 'dependencies'], 'readwrite', (tx) => {
+      const projStore = tx.objectStore('projects');
+      const taskStore = tx.objectStore('tasks');
+      const depStore = tx.objectStore('dependencies');
+
+      projStore.clear();
+      taskStore.clear();
+      depStore.clear();
+
+      for (const p of projects) {
+        const { tasks = [], dependencies = [], ...meta } = p;
+        projStore.put(meta);
+        for (const t of tasks) {
+          taskStore.put({ ...t, project_id: meta.id });
+        }
+        for (const d of dependencies) {
+          depStore.put({ ...d, project_id: meta.id });
+        }
+      }
+    });
+  }
+
   // --- Settings ---
   async getSetting(key, defaultValue = null) {
     await this.init();
@@ -202,6 +251,29 @@ class LocalPMDatabase {
     return new Promise((resolve, reject) => {
       const tx = this.db.transaction('settings', 'readwrite');
       const store = tx.objectStore('settings');
+      const req = store.put({ key, value });
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  // --- Meta store (for FileSystemFileHandle, workspace stats, etc.) ---
+  async getMeta(key, defaultValue = null) {
+    await this.init();
+    return new Promise((resolve) => {
+      const tx = this.db.transaction('meta', 'readonly');
+      const store = tx.objectStore('meta');
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result ? req.result.value : defaultValue);
+      req.onerror = () => resolve(defaultValue);
+    });
+  }
+
+  async setMeta(key, value) {
+    await this.init();
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction('meta', 'readwrite');
+      const store = tx.objectStore('meta');
       const req = store.put({ key, value });
       req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error);

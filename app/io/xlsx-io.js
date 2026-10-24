@@ -229,8 +229,141 @@ export const XlsxIO = {
     const wsDeps = XLSX.utils.aoa_to_sheet(depRows);
     XLSX.utils.book_append_sheet(wb, wsDeps, 'Связи');
 
-    // Generate binary XLSX
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    return new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    // Generate binary XLSX via SheetJS if available, otherwise pure native generator
+    if (typeof XLSX !== 'undefined' && XLSX.write) {
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      return new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    }
+
+    return this.makeNativeXlsx([
+      { name: 'План', rows: taskRows },
+      { name: 'Вехи', rows: milestoneRows },
+      { name: 'Связи', rows: depRows }
+    ]);
+  },
+
+  // Standalone native zero-dependency browser XLSX generator (pure OOXML + ZIP store)
+  makeNativeXlsx(sheets) {
+    let CRC_T = null;
+    function crcTable() {
+      if (CRC_T) return CRC_T;
+      CRC_T = new Uint32Array(256);
+      for (let n = 0; n < 256; n++) {
+        let c = n;
+        for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+        CRC_T[n] = c;
+      }
+      return CRC_T;
+    }
+    function crc32(u8) {
+      const T = crcTable();
+      let c = 0xFFFFFFFF;
+      for (let i = 0; i < u8.length; i++) c = T[(c ^ u8[i]) & 255] ^ (c >>> 8);
+      return (c ^ 0xFFFFFFFF) >>> 0;
+    }
+    function colName(i) {
+      let s = '';
+      i++;
+      while (i) {
+        i--;
+        s = String.fromCharCode(65 + i % 26) + s;
+        i = Math.floor(i / 26);
+      }
+      return s;
+    }
+    function xmlEsc(s) {
+      return String(s ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+    }
+    function sheetXml(rows) {
+      let x = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>';
+      rows.forEach((r, ri) => {
+        x += `<row r="${ri + 1}">`;
+        r.forEach((c, ci) => {
+          const ref = colName(ci) + (ri + 1);
+          if (typeof c === 'number' && isFinite(c)) {
+            x += `<c r="${ref}"><v>${c}</v></c>`;
+          } else {
+            x += `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${xmlEsc(c)}</t></is></c>`;
+          }
+        });
+        x += '</row>';
+      });
+      return x + '</sheetData></worksheet>';
+    }
+
+    const enc = new TextEncoder();
+    const files = {
+      '[Content_Types].xml': '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' + sheets.map((s, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('') + '</Types>',
+      '_rels/.rels': '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>',
+      'xl/workbook.xml': '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' + sheets.map((s, i) => `<sheet name="${xmlEsc(s.name).slice(0, 31)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('') + '</sheets></workbook>',
+      'xl/_rels/workbook.xml.rels': '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + sheets.map((s, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('') + '</Relationships>'
+    };
+
+    sheets.forEach((s, i) => {
+      files['xl/worksheets/sheet' + (i + 1) + '.xml'] = sheetXml(s.rows);
+    });
+
+    const names = Object.keys(files);
+    const chunks = [];
+    const central = [];
+    let off = 0;
+
+    for (const n of names) {
+      const nb = enc.encode(n);
+      const data = enc.encode(files[n]);
+      const crc = crc32(data);
+      const lh = new DataView(new ArrayBuffer(30));
+      lh.setUint32(0, 0x04034b50, true);
+      lh.setUint16(4, 20, true);
+      lh.setUint16(6, 0, true);
+      lh.setUint16(8, 0, true);
+      lh.setUint16(10, 0, true);
+      lh.setUint16(12, 0, true);
+      lh.setUint32(14, crc, true);
+      lh.setUint32(18, data.length, true);
+      lh.setUint32(22, data.length, true);
+      lh.setUint16(26, nb.length, true);
+      lh.setUint16(28, 0, true);
+      chunks.push(new Uint8Array(lh.buffer), nb, data);
+      central.push({ nb, crc, size: data.length, off });
+      off += 30 + nb.length + data.length;
+    }
+
+    let cdSize = 0;
+    const cd = [];
+    for (const c of central) {
+      const ch = new DataView(new ArrayBuffer(46));
+      ch.setUint32(0, 0x02014b50, true);
+      ch.setUint16(4, 20, true);
+      ch.setUint16(6, 20, true);
+      ch.setUint16(8, 0, true);
+      ch.setUint16(10, 0, true);
+      ch.setUint16(12, 0, true);
+      ch.setUint16(14, 0, true);
+      ch.setUint32(16, c.crc, true);
+      ch.setUint32(20, c.size, true);
+      ch.setUint32(24, c.size, true);
+      ch.setUint16(28, c.nb.length, true);
+      ch.setUint16(30, 0, true);
+      ch.setUint16(32, 0, true);
+      ch.setUint16(34, 0, true);
+      ch.setUint16(36, 0, true);
+      ch.setUint32(38, 0, true);
+      ch.setUint32(42, c.off, true);
+      cd.push(new Uint8Array(ch.buffer), c.nb);
+      cdSize += 46 + c.nb.length;
+    }
+
+    const end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true);
+    end.setUint16(4, central.length, true);
+    end.setUint16(6, central.length, true);
+    end.setUint32(8, cdSize, true);
+    end.setUint32(12, off, true);
+    end.setUint16(16, 0, true);
+
+    return new Blob([...chunks, ...cd, new Uint8Array(end.buffer)], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
   }
 };

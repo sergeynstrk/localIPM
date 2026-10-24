@@ -28,8 +28,21 @@
       <span>LocalPM</span>
       <span class="logo-badge">PWA v2.0</span>
       <span id="current-project-badge" style="font-size: 0.85rem; font-weight: normal; color: #94a3b8; margin-left: 8px;"></span>
+      <div class="db-chip" id="db-chip" title="Управление файлом базы данных localpm-data.json">
+        ● БД: проверка…
+      </div>
     </div>
     <div class="header-actions">
+      <!-- Style & Theme Quick Toggle -->
+      <select id="select-theme" class="btn btn-sm" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); font-size: 0.75rem; padding: 4px 8px;" title="Оформление интерфейса">
+        <option value="dark">Тёмная (Bento)</option>
+        <option value="light">Светлая</option>
+        <option value="auto">Авто (Система)</option>
+      </select>
+      <button class="btn btn-sm" id="btn-run-tests" title="Запустить встроенный комплекс тестов (25+ проверок)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        Тесты
+      </button>
       <button class="btn btn-sm" id="btn-export-workspace" title="Экспорт рабочего пространства (все проекты)">Экспорт бэкапа</button>
       <button class="btn btn-sm" id="btn-import-workspace" title="Импорт рабочего пространства">Импорт бэкапа</button>
       <input type="file" id="input-import-workspace" accept=".json" style="display: none;">
@@ -47,7 +60,8 @@
       </ul>
       <div style="padding: 12px 16px; border-top: 1px solid var(--border-color);">
         <button class="btn btn-sm" style="width: 100%; justify-content: center;" id="btn-import-peer-package">
-          📥 Импорт от коллеги (*.lpmproject)
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Импорт пакета (*.lpmproject)
         </button>
         <input type="file" id="input-peer-package" accept=".lpmproject,.json" style="display: none;">
       </div>
@@ -66,8 +80,14 @@
 
       <!-- Toolbar -->
       <div class="toolbar">
-        <!-- Task Operations Group -->
+        <!-- History & Task Operations Group -->
         <div class="toolbar-group">
+          <button class="btn btn-sm" id="btn-undo" title="Отменить действие (Ctrl+Z)" aria-label="Отменить">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+          </button>
+          <button class="btn btn-sm" id="btn-redo" title="Повторить действие (Ctrl+Y / Ctrl+Shift+Z)" aria-label="Повторить">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/></svg>
+          </button>
           <button class="btn btn-sm btn-primary" id="btn-add-task">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> Задача
           </button>
@@ -77,16 +97,24 @@
           <button class="btn btn-sm" id="btn-edit-task">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Изменить
           </button>
-          <span class="tip-q" data-tooltip="Добавление и редактирование задач или вех (нулевая длительность)">?</span>
+          <span class="tip-q" data-tooltip="Отмена/повтор действий (Ctrl+Z, Ctrl+Y), создание и изменение задач">?</span>
         </div>
 
         <!-- Hierarchy & Order Group -->
         <div class="toolbar-group">
-          <button class="btn btn-sm" id="btn-indent" title="Сделать подзадачей (WBS)">➔ Уровень</button>
-          <button class="btn btn-sm" id="btn-outdent" title="Поднять уровень (WBS)">⬅ Назад</button>
-          <button class="btn btn-sm" id="btn-move-up" title="Вверх (Alt+Up)">▲</button>
-          <button class="btn btn-sm" id="btn-move-down" title="Вниз (Alt+Down)">▼</button>
-          <button class="btn btn-sm btn-danger" id="btn-delete-task" title="Удалить выбранную задачу">
+          <button class="btn btn-sm" id="btn-indent" title="Сделать подзадачей (WBS)" aria-label="Сделать подзадачей">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12h12M12 6l6 6-6 6"/></svg> Уровень
+          </button>
+          <button class="btn btn-sm" id="btn-outdent" title="Поднять уровень (WBS)" aria-label="Поднять уровень">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 12H8M12 6l-6 6 6 6"/></svg> Назад
+          </button>
+          <button class="btn btn-sm" id="btn-move-up" title="Вверх (Alt+Up)" aria-label="Переместить задачу вверх">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg>
+          </button>
+          <button class="btn btn-sm" id="btn-move-down" title="Вниз (Alt+Down)" aria-label="Переместить задачу вниз">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <button class="btn btn-sm btn-danger" id="btn-delete-task" title="Удалить выбранную задачу" aria-label="Удалить задачу">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           </button>
           <span class="tip-q" data-tooltip="Управление структурой WBS (вложенность) и порядок строк. Задачи также можно перемещать мышью за номер">?</span>
@@ -221,8 +249,9 @@
             <span class="status-indicator" id="storage-status-dot"></span>
             <span id="storage-status-text">Локальное хранилище активно</span>
           </div>
-          <button class="btn-icon" id="btn-open-shortcuts" title="Горячие клавиши (нажмите ? или кликните сюда)" style="font-size: 0.75rem; color: var(--text-muted); padding: 2px 6px;">
-            ⌨️ Клавиши (?)
+          <button class="btn-icon" id="btn-open-shortcuts" title="Горячие клавиши (нажмите ? или кликните сюда)" aria-label="Горячие клавиши" style="font-size: 0.75rem; color: var(--text-muted); padding: 3px 8px; gap: 5px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><line x1="6" y1="8" x2="6" y2="8"/><line x1="10" y1="8" x2="10" y2="8"/><line x1="14" y1="8" x2="14" y2="8"/><line x1="18" y1="8" x2="18" y2="8"/><line x1="6" y1="12" x2="6" y2="12"/><line x1="10" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="14" y2="12"/><line x1="18" y1="12" x2="18" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/></svg>
+            Клавиши (?)
           </button>
         </div>
         <div id="plan-metrics" style="display: flex; gap: 16px;">
@@ -548,7 +577,75 @@
     </div>
   </div>
 
-  <!-- App Bootstrap JS -->
+  <!-- DB File & Storage Modal -->
+  <div class="modal-overlay" id="modal-db-settings">
+    <div class="modal-window" style="max-width: 580px;">
+      <div class="modal-header">
+        <span>База данных и синхронизация</span>
+        <button class="modal-close" onclick="app.closeModal('modal-db-settings')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="background: var(--bg-tertiary); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); font-size: 0.85rem; line-height: 1.6;">
+          <div>Имя файла БД: <b id="db-modal-filename">localpm-data.json</b></div>
+          <div>Режим: <b id="db-modal-mode">Проверка…</b></div>
+          <div>Статус синхронизации: <b id="db-modal-status">Синхронно</b></div>
+          <div>Последняя запись: <b id="db-modal-saved-at">—</b></div>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">
+          Единый источник истины — файл <code>localpm-data.json</code> в папке приложения. Подключив файл через File System Access API, изменения сохраняются автоматически с задержкой 700 мс.
+        </p>
+      </div>
+      <div class="modal-footer" style="flex-wrap: wrap;">
+        <button class="btn btn-sm" id="btn-db-link-file">Подключить файл (автосохранение)</button>
+        <button class="btn btn-sm" id="btn-db-save-file">Создать новый файл БД</button>
+        <button class="btn btn-sm" id="btn-db-open-input">Открыть копию (.json)</button>
+        <button class="btn btn-sm" id="btn-db-download">Скачать файл БД</button>
+        <button class="btn btn-sm btn-primary" onclick="app.closeModal('modal-db-settings')">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DB Version Conflict Modal -->
+  <div class="modal-overlay" id="modal-db-conflict">
+    <div class="modal-window" style="max-width: 500px;">
+      <div class="modal-header">
+        <span>Конфликт версий базы данных</span>
+        <button class="modal-close" onclick="app.closeModal('modal-db-conflict')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size: 0.85rem; line-height: 1.5;">
+          Локальный кэш браузера содержит более свежие изменения, чем подключённый файл <code>localpm-data.json</code>.
+          Какую версию вы хотите сохранить в качестве актуальной?
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="btn-conflict-use-file">Взять из файла</button>
+        <button class="btn btn-primary" id="btn-conflict-use-local">Оставить локальную и записать в файл</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Self-Test Runner Modal -->
+  <div class="modal-overlay" id="modal-test-runner">
+    <div class="modal-window" style="max-width: 720px; max-height: 85vh;">
+      <div class="modal-header">
+        <span>Комплекс самотестирования LocalPM (25+ проверок)</span>
+        <button class="modal-close" onclick="app.closeModal('modal-test-runner')">✕</button>
+      </div>
+      <div class="modal-body" style="overflow-y: auto;">
+        <div id="test-summary-badge" style="font-size: 0.9rem; font-weight: 600; padding: 10px 14px; border-radius: var(--radius-sm); margin-bottom: 12px; background: var(--bg-tertiary);">
+          Выполняются проверки…
+        </div>
+        <div id="test-results-list" style="font-family: var(--font-mono); font-size: 0.78rem; display: flex; flex-direction: column; gap: 4px;">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm" id="btn-print-test-protocol">Печать протокола</button>
+        <button class="btn btn-sm btn-primary" onclick="app.closeModal('modal-test-runner')">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="./app/app.js"></script>
 </body>
 </html>
