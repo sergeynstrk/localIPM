@@ -504,7 +504,7 @@ class AppController {
     }
 
     // Scale
-    document.getElementById('select-scale').addEventListener('change', (e) => {
+    document.getElementById('select-scale')?.addEventListener('change', (e) => {
       this.gantt.setScale(e.target.value);
     });
 
