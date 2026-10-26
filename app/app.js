@@ -1129,10 +1129,14 @@ class AppController {
               this.dependencies = [];
               document.getElementById('task-table-body-el').innerHTML = '';
               this.gantt.setData({ tasks: [], dependencies: [], calendar: null, startDate: null });
-              document.getElementById('current-project-badge').innerText = '';
-              document.getElementById('metric-tasks-count').innerText = '0';
-              document.getElementById('metric-critical-count').innerText = '0';
-              document.getElementById('metric-finish-date').innerText = '—';
+              const badge = document.getElementById('current-project-badge');
+              if (badge) badge.innerText = '';
+              const mCount = document.getElementById('metric-tasks-count');
+              if (mCount) mCount.innerText = '0';
+              const mCrit = document.getElementById('metric-critical-count');
+              if (mCrit) mCrit.innerText = '0';
+              const mFin = document.getElementById('metric-finish-date');
+              if (mFin) mFin.innerText = '—';
             }
           }
           await this.loadProjects();
@@ -1152,9 +1156,16 @@ class AppController {
       localStorage.setItem('localpm_active_project_id', id);
     } catch (_) {}
 
-    document.getElementById('current-project-badge').innerText = `• ${proj.name}`;
-    document.getElementById('print-project-title').innerText = proj.name;
-    document.getElementById('print-project-meta').innerText = `Дата начала: ${DateUtils.formatRU(proj.start_date)} | Сформировано: ${new Date().toLocaleDateString('ru-RU')}`;
+    const badge = document.getElementById('current-project-badge');
+    if (badge) badge.innerText = `• ${proj.name}`;
+    const headerName = document.getElementById('header-project-name');
+    if (headerName) headerName.innerText = proj.name;
+    const headerMeta = document.getElementById('header-project-meta');
+    if (headerMeta) headerMeta.innerText = `ред. ${proj.revision || 1} · /localpm-data.json`;
+    const printTitle = document.getElementById('print-project-title');
+    if (printTitle) printTitle.innerText = proj.name;
+    const printMeta = document.getElementById('print-project-meta');
+    if (printMeta) printMeta.innerText = `Дата начала: ${DateUtils.formatRU(proj.start_date)} | Сформировано: ${new Date().toLocaleDateString('ru-RU')}`;
 
     // Load tasks & deps
     this.tasks = await db.getProjectTasks(id);
