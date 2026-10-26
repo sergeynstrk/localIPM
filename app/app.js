@@ -313,6 +313,14 @@ class AppController {
     if (btnSaveCard) btnSaveCard.addEventListener('click', () => this.handleSaveTaskCard());
     document.getElementById('btn-delete-task')?.addEventListener('click', () => this.handleDeleteTask());
 
+    // Floating Action Bar button listeners
+    document.getElementById('btn-float-indent')?.addEventListener('click', () => this.handleIndent());
+    document.getElementById('btn-float-outdent')?.addEventListener('click', () => this.handleOutdent());
+    document.getElementById('btn-float-group')?.addEventListener('click', () => this.handleCreateGroup());
+    document.getElementById('btn-float-move-up')?.addEventListener('click', () => this.handleMoveTask(-1));
+    document.getElementById('btn-float-move-down')?.addEventListener('click', () => this.handleMoveTask(1));
+    document.getElementById('btn-float-delete')?.addEventListener('click', () => this.handleDeleteTask());
+
     // Planning Mode & Baseline buttons (D-08, D-11)
     document.getElementById('btn-set-auto')?.addEventListener('click', () => this.handleSetSchedulingMode(false));
     document.getElementById('btn-set-manual')?.addEventListener('click', () => this.handleSetSchedulingMode(true));
@@ -1926,6 +1934,18 @@ class AppController {
       }
     });
     this.updateSelectionMetrics();
+
+    // Floating selection bar control
+    const floatBar = document.getElementById('floating-action-bar');
+    const floatCount = document.getElementById('float-selected-count');
+    if (floatBar) {
+      if (selSet.size > 0) {
+        if (floatCount) floatCount.innerText = selSet.size;
+        floatBar.classList.add('visible');
+      } else {
+        floatBar.classList.remove('visible');
+      }
+    }
   }
 
   updateSelectionMetrics() {

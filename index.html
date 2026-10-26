@@ -116,8 +116,8 @@
           <span class="tip-q" data-tooltip="Отмена/повтор действий (Ctrl+Z, Ctrl+Y), создание и изменение задач">?</span>
         </div>
 
-        <!-- Hierarchy & Order Group -->
-        <div class="toolbar-group">
+        <!-- Hierarchy & Order Group (Moved to Floating Selection Bar for cleaner view) -->
+        <div class="toolbar-group toolbar-hierarchy-group" style="display: none;">
           <button class="btn btn-sm" id="btn-indent" title="Сделать подзадачей (WBS)" aria-label="Сделать подзадачей">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12h12M12 6l6 6-6 6"/></svg> Уровень
           </button>
@@ -136,7 +136,6 @@
           <button class="btn btn-sm btn-danger" id="btn-delete-task" title="Удалить выбранную задачу" aria-label="Удалить задачу">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           </button>
-          <span class="tip-q" data-tooltip="Управление структурой WBS (вложенность) и порядок строк. Задачи также можно перемещать мышью за номер">?</span>
         </div>
 
         <!-- Planning Mode & Baseline Group (D-08, D-11) -->
@@ -225,6 +224,31 @@
             <button class="view-mode-btn" id="btn-view-table" title="Только таблица задач">Таблица</button>
           </div>
         </div>
+      </div>
+
+      <!-- Floating Action Bar for Selected Tasks (Linear & ClickUp Pattern) -->
+      <div class="floating-action-bar" id="floating-action-bar">
+        <span class="float-badge" id="float-selected-count">1</span>
+        <button class="btn btn-sm" id="btn-float-indent" title="Сделать подзадачей (Indent)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12h12M12 6l6 6-6 6"/></svg> Уровень
+        </button>
+        <button class="btn btn-sm" id="btn-float-outdent" title="Поднять уровень (Outdent)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 12H8M12 6l-6 6 6 6"/></svg> Назад
+        </button>
+        <button class="btn btn-sm" id="btn-float-group" title="Объединить в группу">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Группа
+        </button>
+        <div class="float-sep"></div>
+        <button class="btn btn-sm" id="btn-float-move-up" title="Вверх (Alt+Up)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg>
+        </button>
+        <button class="btn btn-sm" id="btn-float-move-down" title="Вниз (Alt+Down)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="float-sep"></div>
+        <button class="btn btn-sm btn-danger" id="btn-float-delete" title="Удалить выбранные">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Удалить
+        </button>
       </div>
 
       <!-- Split View: Left Table, Right Gantt -->
