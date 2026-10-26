@@ -301,6 +301,10 @@ class AppController {
 
     // Task manipulations
     document.getElementById('btn-add-task')?.addEventListener('click', () => this.handleAddTask(false));
+    document.getElementById('btn-add-subtask')?.addEventListener('click', () => {
+      this.handleAddTask(false);
+      this.handleIndent();
+    });
     document.getElementById('btn-add-milestone')?.addEventListener('click', () => this.handleAddTask(true));
     document.getElementById('btn-indent')?.addEventListener('click', () => this.handleIndent());
     document.getElementById('btn-outdent')?.addEventListener('click', () => this.handleOutdent());
@@ -312,6 +316,18 @@ class AppController {
     const btnSaveCard = document.getElementById('btn-save-task-card');
     if (btnSaveCard) btnSaveCard.addEventListener('click', () => this.handleSaveTaskCard());
     document.getElementById('btn-delete-task')?.addEventListener('click', () => this.handleDeleteTask());
+
+    // Undo / Redo & Clipboard
+    document.getElementById('btn-undo')?.addEventListener('click', () => this.undo());
+    document.getElementById('btn-redo')?.addEventListener('click', () => this.redo());
+    document.getElementById('btn-copy-sel')?.addEventListener('click', () => this.copySelectedTasks());
+    document.getElementById('btn-paste-sel')?.addEventListener('click', () => this.pasteTasks());
+
+    // Quick Exports & Hubs
+    document.getElementById('btn-export-xlsx-quick')?.addEventListener('click', () => this.handleExportExcel());
+    document.getElementById('btn-export-png-quick')?.addEventListener('click', () => this.handleExportPNG());
+    document.getElementById('btn-print-quick')?.addEventListener('click', () => this.handlePrintPDF());
+    document.getElementById('btn-open-health')?.addEventListener('click', () => this.handleOpenHealthModal());
 
     // Floating Action Bar button listeners
     document.getElementById('btn-float-indent')?.addEventListener('click', () => this.handleIndent());
@@ -332,6 +348,64 @@ class AppController {
     if (searchInput) {
       searchInput.addEventListener('input', (e) => this.handleSearchTasks(e.target.value));
     }
+    const ganttSearchInput = document.getElementById('gantt-search-input');
+    if (ganttSearchInput) {
+      ganttSearchInput.addEventListener('input', (e) => this.handleSearchTasks(e.target.value));
+    }
+
+    // Segmented Scale Switcher (Д, Н, М, К)
+    document.querySelectorAll('.seg-b[data-scale]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.seg-b[data-scale]').forEach(b => b.classList.remove('on'));
+        btn.classList.add('on');
+        const scale = btn.dataset.scale;
+        if (this.gantt && this.gantt.setScale) {
+          this.gantt.setScale(scale);
+          this.gantt.render();
+        }
+      });
+    });
+
+    // Gantt display option checkboxes
+    document.getElementById('chk-show-deps')?.addEventListener('change', (e) => {
+      if (this.gantt) {
+        this.gantt.showDependencies = e.target.checked;
+        this.gantt.render();
+      }
+    });
+    document.getElementById('chk-show-progress')?.addEventListener('change', (e) => {
+      if (this.gantt) {
+        this.gantt.showProgress = e.target.checked;
+        this.gantt.render();
+      }
+    });
+    document.getElementById('chk-show-labels')?.addEventListener('change', (e) => {
+      if (this.gantt) {
+        this.gantt.showLabels = e.target.checked;
+        this.gantt.render();
+      }
+    });
+
+    // WBS Level & Collapse All
+    document.getElementById('btn-collapse-all')?.addEventListener('click', () => {
+      const anyExpanded = this.tasks.some(t => t.isSummary && !t.isCollapsed);
+      this.tasks.forEach(t => {
+        if (t.isSummary) t.isCollapsed = anyExpanded;
+      });
+      this.renderTaskTable();
+      if (this.gantt) this.gantt.render();
+    });
+    document.getElementById('select-wbs-level')?.addEventListener('change', (e) => {
+      const maxLvl = parseInt(e.target.value, 10);
+      this.tasks.forEach(t => {
+        if (t.isSummary) {
+          const depth = (t.outlineLevel !== undefined ? t.outlineLevel : (t.wbs ? t.wbs.split('.').length : 1));
+          t.isCollapsed = depth >= maxLvl;
+        }
+      });
+      this.renderTaskTable();
+      if (this.gantt) this.gantt.render();
+    });
 
     // Tab switching helper for Import / Export Hubs
     document.querySelectorAll('.modal-tab-btn').forEach(btn => {
@@ -1194,10 +1268,31 @@ class AppController {
     this.latestHealthReport = cpmResult;
 
     // Update metrics
-    document.getElementById('metric-tasks-count').innerText = this.tasks.length;
-    document.getElementById('metric-critical-count').innerText = cpmResult.criticalPathCount || 0;
-    document.getElementById('metric-finish-date').innerText = DateUtils.formatRU(cpmResult.projectFinishDate);
+    const mTask = document.getElementById('metric-tasks-count');
+    if (mTask) mTask.innerText = this.tasks.length;
+    const mCrit = document.getElementById('metric-critical-count');
+    if (mCrit) mCrit.innerText = cpmResult.criticalPathCount || 0;
+    const mFin = document.getElementById('metric-finish-date');
+    if (mFin) mFin.innerText = DateUtils.formatRU(cpmResult.projectFinishDate);
     this.updateSelectionMetrics();
+
+    // Update Statusbar metrics
+    const statTask = document.getElementById('stat-task-count');
+    if (statTask) statTask.innerText = this.tasks.length;
+    const statFinish = document.getElementById('stat-finish-date');
+    if (statFinish) statFinish.innerText = DateUtils.formatRU(cpmResult.projectFinishDate);
+    const statStart = document.getElementById('stat-start-date');
+    if (statStart && this.currentProject) statStart.innerText = DateUtils.formatRU(this.currentProject.startDate);
+    const statStatus = document.getElementById('stat-status-date');
+    if (statStatus && this.currentProject) statStatus.innerText = DateUtils.formatRU(this.currentProject.statusDate || this.currentProject.startDate);
+    const statCpm = document.getElementById('stat-cpm-status');
+    if (statCpm) statCpm.innerText = `CPM: ${cpmResult.criticalPathCount || 0} крит.`;
+    const statWarn = document.getElementById('stat-warnings');
+    if (statWarn) {
+      const warnCount = (cpmResult.healthWarnings || []).length;
+      statWarn.innerText = warnCount > 0 ? `Предупреждений: ${warnCount}` : 'Предупреждений: 0';
+      statWarn.style.display = warnCount > 0 ? 'inline-block' : 'none';
+    }
 
     // Update health badge on toolbar
     const healthBadge = document.getElementById('toolbar-health-badge');

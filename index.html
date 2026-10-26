@@ -23,29 +23,36 @@
   <header class="app-header">
     <div class="logo-area">
       <button class="btn-icon" id="btn-toggle-sidebar" title="Свернуть/развернуть панель проектов" aria-label="Переключить боковую панель">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        <svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5h14M3 10h14M3 15h14"/></svg>
       </button>
-      <span>LocalPM</span>
-      <span class="logo-badge">v2.2.0</span>
-      <span id="current-project-badge" style="font-size: 0.85rem; font-weight: normal; color: #94a3b8; margin-left: 8px;"></span>
-      <div class="db-chip" id="db-chip" title="Управление файлом базы данных localpm-data.json">
-        ● БД: проверка…
+      <div class="brand-project">
+        <strong id="header-project-name">Демо: План внедрения</strong>
+        <span id="header-project-meta">ред. 1 · /localpm-data.json</span>
       </div>
     </div>
     <div class="header-actions">
-      <button class="btn btn-sm" id="btn-run-tests" title="Запустить встроенный комплекс тестов">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-        Тесты
+      <button class="btn small" id="db-chip" title="База данных: ./localpm-data.json">● БД: ./localpm-data.json не найдена — локально (несохранённые)</button>
+      <button class="btn primary" id="btn-save-project" title="Сохранить проект (Ctrl+S)">
+        <svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h10l2 2v10H4zM8 4v4h5V4M7 16v-5h6v5"/></svg>Сохранить
       </button>
-      <button class="btn btn-sm" id="btn-open-settings" title="Настройки оформления и стиля интерфейса">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        Стиль
+      <button class="btn" id="btn-header-projects" title="Панель проектов">
+        <svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 4l-6 6 6 6M5 10h11"/></svg>Проекты
       </button>
-      <select id="select-theme" class="btn btn-sm" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); font-size: 0.75rem; padding: 4px 8px;" title="Быстрое переключение темы">
-        <option value="auto">Тема: Авто</option>
-        <option value="dark">Тема: Тёмная</option>
-        <option value="light">Тема: Светлая</option>
-      </select>
+      <button class="btn ico" id="btn-open-export-hub" title="Передать проект / Пакеты" aria-label="Передать">
+        <svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 3L3 10l6 2 2 6zM9 12l8-9"/></svg>
+      </button>
+      <button class="btn ico" id="btn-print-quick" title="Печать / Экспорт в PDF" aria-label="Печать">
+        <svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 8V4h8v4M6 13H4V8h12v5h-2M6 12h8v4H6z"/></svg>
+      </button>
+      <button class="btn ico" id="btn-open-settings" title="Оформление и тема интерфейса" aria-label="Настройки">
+        <svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="2.6"/><path d="M10 3v2.2M10 14.8V17M3 10h2.2M14.8 10H17M5.2 5.2l1.6 1.6M13.2 13.2l1.6 1.6M14.8 5.2l-1.6 1.6M6.8 13.2l-1.6 1.6"/></svg>
+      </button>
+      <button class="btn ico" id="btn-theme-toggle-quick" title="Быстрое переключение темы" aria-label="Тема">
+        <svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12.5 4.5a6 6 0 1 0 3 11 7 7 0 0 1-3-11z"/></svg>
+      </button>
+      <button class="btn ico" id="btn-run-tests" title="Самотестирование системы" aria-label="Тесты">
+        <svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5h8M3 10h8M3 15h8M13 5l2 2 3-3M13 10l2 2 3-3M13 15l2 2 3-3"/></svg>
+      </button>
     </div>
   </header>
 
@@ -96,133 +103,74 @@
 
       <!-- Toolbar -->
       <div class="toolbar">
-        <!-- History & Task Operations Group -->
-        <div class="toolbar-group">
-          <button class="btn btn-sm" id="btn-undo" title="Отменить действие (Ctrl+Z)" aria-label="Отменить">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
-          </button>
-          <button class="btn btn-sm" id="btn-redo" title="Повторить действие (Ctrl+Y / Ctrl+Shift+Z)" aria-label="Повторить">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/></svg>
-          </button>
-          <button class="btn btn-sm btn-primary" id="btn-add-task">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> Задача
-          </button>
-          <button class="btn btn-sm" id="btn-add-milestone">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l10 10-10 10L2 12z"/></svg> Веха
-          </button>
-          <button class="btn btn-sm" id="btn-edit-task">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Изменить
-          </button>
-          <span class="tip-q" data-tooltip="Отмена/повтор действий (Ctrl+Z, Ctrl+Y), создание и изменение задач">?</span>
-        </div>
+        <button class="btn primary" id="btn-add-task"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 4v12M4 10h12"/></svg>Задача</button>
+        <button class="btn" id="btn-add-subtask" title="Подзадача"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5h8M3 10h4M7 10v5h10"/></svg>Подзадача</button>
+        <button class="btn" id="btn-add-milestone" title="Веха"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 3l5 7-5 7-5-7z"/></svg>Веха</button>
+        <button class="btn" id="btn-create-group" title="Группа"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6h5l2 2h5v8H4z"/></svg>Группа</button>
+        <button class="btn" id="btn-edit-task" title="Карточка"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="14" height="12" rx="1.5"/><path d="M3 8h14"/></svg>Карточка</button>
+        <span class="sep"></span>
 
-        <!-- Hierarchy & Order Group (Moved to Floating Selection Bar for cleaner view) -->
-        <div class="toolbar-group toolbar-hierarchy-group" style="display: none;">
-          <button class="btn btn-sm" id="btn-indent" title="Сделать подзадачей (WBS)" aria-label="Сделать подзадачей">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12h12M12 6l6 6-6 6"/></svg> Уровень
-          </button>
-          <button class="btn btn-sm" id="btn-outdent" title="Поднять уровень (WBS)" aria-label="Поднять уровень">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 12H8M12 6l-6 6 6 6"/></svg> Назад
-          </button>
-          <button class="btn btn-sm" id="btn-create-group" title="Создать суммарную группу над выделенными задачами" aria-label="Создать группу">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Группа
-          </button>
-          <button class="btn btn-sm" id="btn-move-up" title="Вверх (Alt+Up)" aria-label="Переместить задачу вверх">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg>
-          </button>
-          <button class="btn btn-sm" id="btn-move-down" title="Вниз (Alt+Down)" aria-label="Переместить задачу вниз">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
-          <button class="btn btn-sm btn-danger" id="btn-delete-task" title="Удалить выбранную задачу" aria-label="Удалить задачу">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-          </button>
-        </div>
+        <button class="btn ico" id="btn-indent" title="Уровень +1"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 10h9M9 6l4 4-4 4"/></svg></button>
+        <button class="btn ico" id="btn-outdent" title="Уровень −1"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 10H7M11 6l-4 4 4 4"/></svg></button>
+        <button class="btn ico" id="btn-move-up" title="Выше"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 16V5M6 9l4-4 4 4"/></svg></button>
+        <button class="btn ico" id="btn-move-down" title="Ниже"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 4v11M6 11l4 4 4-4"/></svg></button>
+        <button class="btn danger" id="btn-delete-task" title="Удалить"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 6h10M8 6V4h4v2M7 6l1 10h4l1-10"/></svg>Удалить</button>
+        <span class="sep"></span>
 
-        <!-- Planning Mode & Baseline Group (D-08, D-11) -->
-        <div class="toolbar-group">
-          <button class="btn btn-sm" id="btn-set-auto" title="Автоматическое планирование CPM (по умолчанию)">Автоплан</button>
-          <button class="btn btn-sm" id="btn-set-manual" title="Ручное планирование: даты задачи фиксируются">Ручной</button>
-          <button class="btn btn-sm" id="btn-save-baseline" title="Зафиксировать базовый план проекта">Базовый</button>
-          <button class="btn btn-sm" id="btn-autofit-cols" title="Автоматическая ширина колонок по содержимому (D-11)">Автоширина</button>
-        </div>
+        <button class="btn ico" id="btn-undo" title="Отменить (Ctrl+Z)"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 5L4 9l4 4M4 9h8a4 4 0 0 1 0 8h-2"/></svg></button>
+        <button class="btn ico" id="btn-redo" title="Повторить (Ctrl+Y)"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5l4 4-4 4M16 9H8a4 4 0 0 0 0 8h2"/></svg></button>
+        <button class="btn ico" id="btn-copy-sel" title="Копировать (Ctrl+C)"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="7" y="7" width="9" height="9" rx="1.5"/><path d="M13 4H4v9"/></svg></button>
+        <button class="btn ico" id="btn-paste-sel" title="Вставить (Ctrl+V)"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 4H5v13h10V4h-2M8 3h4v2H8z"/></svg></button>
+        <span class="sep"></span>
+        <button class="btn" id="btn-set-auto" title="Автопланирование"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 10a5 5 0 1 1-1.8-3.8M13.5 3v3.5H17"/></svg>Автоплан</button>
+        <button class="btn" id="btn-set-manual" title="Ручное планирование"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 10V6M8.5 10V4.5M11 10V5.5M13.5 10V7M6 10v3a4 4 0 0 0 4 4 4 4 0 0 0 4-4v-3"/></svg>Ручной</button>
+        <span class="sep"></span>
 
-        <!-- Search Group -->
-        <div class="toolbar-group">
-          <div class="search-input-wrap">
-            <svg class="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text" id="task-search-input" placeholder="Поиск задач..." />
+        <button class="btn ico" id="btn-save-baseline" title="Сохранить базовый план"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 15h12M6 15v-5h5v5M13 15v-3h3v3"/></svg></button>
+        <button class="btn ico" id="btn-open-health" title="Проблемы плана (Аудит)"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 4l7 12H3zM10 9v3M10 14.6v.4"/></svg></button>
+        <button class="btn ico" id="btn-autofit-cols" title="Автоширина колонок"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 10h12M4 10l3-3M4 10l3 3M16 10l-3-3M16 10l-3 3"/></svg></button>
+        <span class="sep"></span>
+        <button class="btn" id="btn-open-import-hub" title="Импорт"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 4v8M7 9l3 3 3-3M4 15h12"/></svg>Импорт</button>
+        <button class="btn" id="btn-export-xlsx-quick" title="Экспорт в XLSX"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="14" height="12" rx="1.5"/><path d="M3 9h14M8.5 9v7M13.5 9v7"/></svg>XLSX</button>
+        <button class="btn" id="btn-export-png-quick" title="Экспорт в PNG"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="14" height="12" rx="1.5"/><circle cx="7.5" cy="8" r="1.3"/><path d="M4 14l4-4 3 3 2-2 3 3"/></svg>PNG</button>
+        <span class="sep"></span>
+        <div class="view-cluster">
+          <div class="seg" role="group" aria-label="Масштаб шкалы">
+            <button class="seg-b on" data-scale="day" title="День">Д</button>
+            <button class="seg-b" data-scale="week" title="Неделя">Н</button>
+            <button class="seg-b" data-scale="month" title="Месяц">М</button>
+            <button class="seg-b" data-scale="year" title="Год/Квартал">К</button>
           </div>
-        </div>
+          <select class="tsel" id="select-wbs-level" title="Развернуть до уровня"><option value="0">Уровень</option><option value="9">все</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
+      </div>
 
-        <!-- Smart Tools Group (Health Audit, What-If, Resources) -->
-        <div class="toolbar-group toolbar-smart-group">
-          <div class="btn-tip-pair">
-            <button class="btn btn-sm" id="btn-open-health" style="border-color: rgba(16, 185, 129, 0.4);">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-              Аудит <span id="toolbar-health-badge" style="background: #10b981; color: #fff; padding: 1px 5px; border-radius: 10px; font-size: 0.68rem; margin-left: 2px;">100%</span>
-            </button>
-            <span class="tip-q" data-tooltip="Интеллектуальная проверка качества расписания (DCMA-14): висячие концы, циклы, скрытые риски">?</span>
-          </div>
+      <!-- Statusbar (Metrics line right below toolbar) -->
+      <div class="statusbar" id="project-statusbar">
+        <span>Начало: <b id="stat-start-date">—</b></span>
+        <span>Окончание: <b id="stat-finish-date">—</b></span>
+        <span>Статусная дата: <b id="stat-status-date">—</b></span>
+        <span>Задач: <b id="stat-task-count">0</b></span>
+        <span>Выполнение: <b id="stat-progress">0%</b></span>
+        <span class="ok" id="stat-cpm-status">CPM: OK</span>
+        <span id="stat-warnings" class="critical" style="display: none;"></span>
+        <span id="stat-baseline" style="display: none;"></span>
+      </div>
 
-          <div class="btn-tip-pair">
-            <button class="btn btn-sm" id="btn-toggle-sandbox" style="border-color: rgba(245, 158, 11, 0.4);">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-              Что-если
-            </button>
-            <span class="tip-q" data-tooltip="Сценарное моделирование: тестирование сдвигов сроков без риска испортить основной план">?</span>
-          </div>
-
-          <div class="btn-tip-pair">
-            <button class="btn btn-sm" id="btn-toggle-resources">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              Ресурсы
-            </button>
-            <span class="tip-q" data-tooltip="Панель балансировки загрузки исполнителей и выявления перегрузок">?</span>
-          </div>
-        </div>
-
-        <!-- Unified Import / Export Hub -->
-        <div class="toolbar-group">
-          <div class="btn-tip-pair">
-            <button class="btn btn-sm" id="btn-open-import-hub" style="background: linear-gradient(135deg, #1e293b, #334155);">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Импорт...
-            </button>
-            <span class="tip-q" data-tooltip="Единый центр импорта: Excel (.xlsx/.csv), вставка из буфера обмена (TSV), пакет от коллеги (*.lpmproject)">?</span>
-          </div>
-
-          <div class="btn-tip-pair">
-            <button class="btn btn-sm" id="btn-open-export-hub" style="background: linear-gradient(135deg, #1e293b, #334155);">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              Экспорт...
-            </button>
-            <span class="tip-q" data-tooltip="Единый центр выгрузки: Excel, отчёт для руководства (PDF/PNG), передача проекта коллеге">?</span>
-          </div>
-        </div>
-
-        <!-- Scale & Viewport Group -->
-        <div class="toolbar-group" style="border-right: none;">
-          <span style="font-size: 0.75rem; color: #94a3b8;">Масштаб:</span>
-          <select id="select-scale" style="background: var(--bg-tertiary); color: #fff; border: 1px solid var(--border-color); padding: 3px 6px; border-radius: 4px; font-size: 0.75rem;">
-            <option value="day">День</option>
-            <option value="week">Неделя</option>
-            <option value="month">Месяц</option>
-            <option value="year">Год</option>
-          </select>
-          <span class="tip-q" data-tooltip="Масштаб временной оси Ганта (День, Неделя, Месяц, Год). Также можно масштабировать колесом мыши с зажатым Ctrl">?</span>
-
-          <button class="btn btn-sm" id="btn-gantt-today" title="Перейти к сегодняшнему дню (Клавиша T)" style="padding: 2px 8px; font-size: 0.75rem;">Сегодня</button>
-          <button class="btn btn-sm" id="btn-gantt-fit" title="Вписать весь проект в экран (Клавиша Z)" style="padding: 2px 8px; font-size: 0.75rem;">Вписать</button>
-
-          <!-- View Mode Toggles -->
-          <div class="view-mode-toggle" style="margin-left: 8px;">
-            <button class="view-mode-btn active" id="btn-view-split" title="Таблица и диаграмма Ганта">Сплит</button>
-            <button class="view-mode-btn" id="btn-view-gantt" title="Только диаграмма Ганта">Гант</button>
-            <button class="view-mode-btn" id="btn-view-table" title="Только таблица задач">Таблица</button>
-          </div>
+      <!-- Gantt Tools & Filter Bar -->
+      <div class="gantt-tools">
+        <input type="text" id="task-search-input" placeholder="Поиск (Ctrl+F)" style="max-width: 170px;">
+        <button class="btn small" id="btn-search-next"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="5"/><path d="M13 13l4 4"/></svg>Найти</button>
+        <button class="btn small" id="btn-toggle-filters"><svg class="ic" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 5h12l-4.5 6v5l-3-1.5v-3.5z"/></svg>Фильтр</button>
+        <label class="checkbox nowrap"><input type="checkbox" id="chk-show-deps" checked> связи</label>
+        <label class="checkbox nowrap"><input type="checkbox" id="chk-show-progress" checked> прогресс</label>
+        <label class="checkbox nowrap"><input type="checkbox" id="chk-show-labels"> подписи</label>
+        <div class="legend right">
+          <span class="task">Задача</span>
+          <span class="critical">Критическая</span>
+          <span class="milestone">Веха</span>
+          <span class="summary">Суммарная</span>
+          <span class="manual">Ручной</span>
+          <span class="baseline">Базовый</span>
         </div>
       </div>
 
@@ -298,23 +246,16 @@
         </div>
       </div>
 
-      <!-- Status Bar -->
-      <footer class="status-bar">
-        <div style="display: flex; align-items: center; gap: 14px;">
-          <div>
-            <span class="status-indicator" id="storage-status-dot"></span>
-            <span id="storage-status-text">Локальное хранилище активно</span>
-          </div>
-          <button class="btn-icon" id="btn-open-shortcuts" title="Горячие клавиши (нажмите ? или кликните сюда)" aria-label="Горячие клавиши" style="font-size: 0.75rem; color: var(--text-muted); padding: 3px 8px; gap: 5px;">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><line x1="6" y1="8" x2="6" y2="8"/><line x1="10" y1="8" x2="10" y2="8"/><line x1="14" y1="8" x2="14" y2="8"/><line x1="18" y1="8" x2="18" y2="8"/><line x1="6" y1="12" x2="6" y2="12"/><line x1="10" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="14" y2="12"/><line x1="18" y1="12" x2="18" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/></svg>
-            Клавиши (?)
-          </button>
-        </div>
-        <div id="plan-metrics" style="display: flex; gap: 16px;">
-          <span id="metric-selected-wrap" style="display: none; color: var(--primary);">Выделено: <b id="metric-selected-count">0</b></span>
-          <span>Задач: <b id="metric-tasks-count">0</b></span>
-          <span>Критический путь: <b id="metric-critical-count" style="color: #ef4444;">0</b></span>
-          <span>Окончание: <b id="metric-finish-date">—</b></span>
+      <!-- Status Bar Footer (compact) -->
+      <footer class="status-bar" style="display: none;">
+        <span class="status-indicator" id="storage-status-dot"></span>
+        <span id="storage-status-text">Локальное хранилище активно</span>
+        <button id="btn-open-shortcuts"></button>
+        <div id="plan-metrics">
+          <span id="metric-selected-wrap"><b id="metric-selected-count">0</b></span>
+          <b id="metric-tasks-count">0</b>
+          <b id="metric-critical-count">0</b>
+          <b id="metric-finish-date">—</b>
         </div>
       </footer>
     </main>
