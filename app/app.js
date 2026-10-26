@@ -324,10 +324,20 @@ class AppController {
     document.getElementById('btn-paste-sel')?.addEventListener('click', () => this.pasteTasks());
 
     // Quick Exports & Hubs
+    document.getElementById('btn-header-projects')?.addEventListener('click', () => {
+      const sidebar = document.querySelector('.sidebar');
+      if (sidebar) {
+        sidebar.classList.toggle('collapsed');
+        setTimeout(() => {
+          this.resizeCanvas(document.getElementById('gantt-canvas'));
+          this.gantt.render();
+        }, 220);
+      }
+    });
     document.getElementById('btn-export-xlsx-quick')?.addEventListener('click', () => this.handleExportExcel());
     document.getElementById('btn-export-png-quick')?.addEventListener('click', () => this.handleExportPNG());
     document.getElementById('btn-print-quick')?.addEventListener('click', () => this.handlePrintPDF());
-    document.getElementById('btn-open-health')?.addEventListener('click', () => this.handleOpenHealthModal());
+    document.getElementById('btn-open-health')?.addEventListener('click', () => this.handleOpenHealthAudit());
 
     // Floating Action Bar button listeners
     document.getElementById('btn-float-indent')?.addEventListener('click', () => this.handleIndent());
@@ -352,6 +362,21 @@ class AppController {
     if (ganttSearchInput) {
       ganttSearchInput.addEventListener('input', (e) => this.handleSearchTasks(e.target.value));
     }
+    document.getElementById('btn-search-next')?.addEventListener('click', () => {
+      const val = (ganttSearchInput?.value || searchInput?.value || '').trim().toLowerCase();
+      if (!val) return;
+      const matches = [...document.querySelectorAll('.task-row.search-match')];
+      if (matches.length > 0) {
+        const nextIdx = (this._lastSearchIdx = ((this._lastSearchIdx || 0) + 1) % matches.length);
+        matches[nextIdx]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+    document.getElementById('btn-toggle-filters')?.addEventListener('click', () => {
+      const wrap = document.getElementById('filter-conditions-wrap');
+      if (wrap) {
+        wrap.style.display = wrap.style.display === 'none' ? 'flex' : 'none';
+      }
+    });
 
     // Segmented Scale Switcher (Д, Н, М, К)
     document.querySelectorAll('.seg-b[data-scale]').forEach(btn => {
@@ -606,6 +631,15 @@ class AppController {
         this.applyTheme();
       });
     }
+
+    // Quick theme toggle (header moon/sun)
+    document.getElementById('btn-theme-toggle-quick')?.addEventListener('click', () => {
+      this.theme = this.theme === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('localpm_theme', this.theme);
+      if (selTheme) selTheme.value = this.theme;
+      this.applyTheme();
+      this.showToast(`Тема переключена на: ${this.theme === 'dark' ? 'тёмную' : 'светлую'}`, 'info');
+    });
 
     // Appearance & Style Modal
     document.getElementById('btn-open-settings')?.addEventListener('click', () => {
