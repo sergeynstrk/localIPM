@@ -32,9 +32,9 @@ class AppController {
       redo: []
     };
 
-    // UI Theme & Style: 'linear' (Linear Bento), 'fluent' (Microsoft Fluent 2), 'classic' (Базовый)
-    this.theme = localStorage.getItem('localpm_theme') || 'auto';
-    let savedStyle = localStorage.getItem('localpm_style') || 'linear';
+    // UI Theme & Style: 'github' (GitHub Primer), 'linear' (Linear Bento), 'fluent' (Fluent 2), 'classic'
+    this.theme = localStorage.getItem('localpm_theme') || 'dark';
+    let savedStyle = localStorage.getItem('localpm_style') || 'github';
     if (savedStyle === 'bento') savedStyle = 'linear';
     this.uiStyle = savedStyle;
   }
@@ -108,19 +108,40 @@ class AppController {
 
     // Drag-to-Link: create dependency on canvas connect
     this.gantt.onLinkCreated = (predId, succId, type = 'FS', lag = 0) => {
+      if (predId === succId) {
+        this.showToast('Задача не может ссылаться сама на себя', 'warning');
+        return;
+      }
+
       // Check if dependency already exists
       const exists = this.dependencies.some(d => d.pred_id === predId && d.succ_id === succId);
-      if (exists) return;
+      if (exists) {
+        this.showToast('Такая связь уже существует', 'info');
+        return;
+      }
 
-      this.dependencies.push({
+      const testDeps = [...this.dependencies, {
         id: `dep-${predId}-${succId}`,
         pred_id: predId,
         succ_id: succId,
         type: type,
         lag_workdays: lag
-      });
+      }];
 
+      const cycle = ValidationUtils.findCycle(this.tasks, testDeps);
+      if (cycle.hasCycle) {
+        const pTask = this.tasks.find(t => t.id === predId);
+        const sTask = this.tasks.find(t => t.id === succId);
+        const pNum = pTask ? pTask.external_number : predId;
+        const sNum = sTask ? sTask.external_number : succId;
+        this.showToast(`Связь #${pNum} → #${sNum} создает циклическую зависимость (петлю) и отклонена!`, 'warning');
+        return;
+      }
+
+      this.pushHistory();
+      this.dependencies = testDeps;
       this.recalculateSchedule();
+      this.showToast(`Создана связь: #${this.tasks.find(t => t.id === predId)?.external_number || predId} → #${this.tasks.find(t => t.id === succId)?.external_number || succId}`, 'success');
     };
 
     // Floating Rich Tooltip Hover Card
@@ -569,6 +590,20 @@ class AppController {
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
         e.preventDefault();
         this.duplicateSelectedTask();
+      } else if (e.key === 'F2') {
+        e.preventDefault();
+        if (this.selectedTaskId) {
+          const nameInput = document.querySelector(`.task-row[data-task-id="${this.selectedTaskId}"] input[data-field="name"]`);
+          if (nameInput) {
+            nameInput.focus();
+            nameInput.select();
+          }
+        }
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (this.selectedTaskId) {
+          this.handleOpenTaskCard();
+        }
       } else if (e.key.toLowerCase() === 't') {
         e.preventDefault();
         this.gantt.jumpToToday();
@@ -1183,7 +1218,8 @@ class AppController {
       tasks: this.tasks,
       dependencies: this.dependencies,
       calendar,
-      startDate: this.currentProject.start_date
+      startDate: this.currentProject.start_date,
+      project: this.currentProject
     });
 
     // Update resources if panel is open
@@ -1441,8 +1477,12 @@ class AppController {
         duration: () => `<div class="col-dur">
           <input type="text" style="text-align: center;" value="${DateUtils.formatDuration(t.duration_days)}" data-field="duration" data-id="${t.id}" ${t.is_summary ? 'disabled' : ''}>
         </div>`,
-        start: () => `<div class="col-start">${DateUtils.formatRU(t.start_date)}</div>`,
-        finish: () => `<div class="col-finish">${DateUtils.formatRU(t.finish_date)}</div>`,
+        start: () => `<div class="col-start">
+          <input type="text" style="text-align: center;" value="${DateUtils.formatRU(t.start_date)}" placeholder="ДД.ММ.ГГГГ" data-field="start" data-id="${t.id}" ${t.is_summary ? 'disabled' : ''}>
+        </div>`,
+        finish: () => `<div class="col-finish">
+          <input type="text" style="text-align: center;" value="${DateUtils.formatRU(t.finish_date)}" placeholder="ДД.ММ.ГГГГ" data-field="finish" data-id="${t.id}" ${t.is_summary ? 'disabled' : ''}>
+        </div>`,
         preds: () => `<div class="col-preds">
           <div class="preds-autocomplete-container" style="position: relative; width: 100%;">
             <input type="text" style="text-align: center;" value="${predsStr}" data-field="preds" data-id="${t.id}" autocomplete="off">
@@ -1578,7 +1618,7 @@ class AppController {
       });
 
       // Excel-style Keyboard Cell Navigation (Arrows, Tab, Enter)
-      const inputFields = ['name', 'duration', 'preds', 'owner', 'note'];
+      const inputFields = ['name', 'duration', 'start', 'finish', 'preds', 'owner', 'note'];
       row.querySelectorAll('input[data-field]').forEach(inp => {
         inp.addEventListener('keydown', (e) => {
           const currentField = inp.dataset.field;
@@ -1631,6 +1671,51 @@ class AppController {
           const parsed = DateUtils.parseDuration(e.target.value);
           t.duration_days = Math.max(0, isNaN(parsed) ? 1 : parsed);
           t.is_milestone = t.duration_days === 0;
+          this.recalculateSchedule();
+        });
+      }
+
+      const startInput = row.querySelector('input[data-field="start"]');
+      if (startInput) {
+        startInput.addEventListener('change', (e) => {
+          const parsed = DateUtils.parseDate(e.target.value);
+          if (!parsed) {
+            e.target.value = DateUtils.formatRU(t.start_date);
+            return;
+          }
+          t.start_date = parsed;
+          t.constraint_snet = parsed;
+          if (t.is_milestone) {
+            t.finish_date = parsed;
+          } else if (t.duration_days > 0 && this.currentProject?.calendar) {
+            t.finish_date = DateUtils.addWorkingDays(parsed, t.duration_days, this.currentProject.calendar);
+          }
+          this.recalculateSchedule();
+        });
+      }
+
+      const finishInput = row.querySelector('input[data-field="finish"]');
+      if (finishInput) {
+        finishInput.addEventListener('change', (e) => {
+          const parsed = DateUtils.parseDate(e.target.value);
+          if (!parsed) {
+            e.target.value = DateUtils.formatRU(t.finish_date);
+            return;
+          }
+          if (t.is_milestone) {
+            t.start_date = parsed;
+            t.finish_date = parsed;
+            t.constraint_snet = parsed;
+          } else if (parsed >= t.start_date && this.currentProject?.calendar) {
+            t.duration_days = Math.max(1, DateUtils.diffWorkingDays(t.start_date, parsed, this.currentProject.calendar));
+            t.finish_date = parsed;
+          } else {
+            // Finish is before start - adjust start to match single day
+            t.start_date = parsed;
+            t.finish_date = parsed;
+            t.duration_days = 1;
+            t.constraint_snet = parsed;
+          }
           this.recalculateSchedule();
         });
       }
@@ -1734,17 +1819,19 @@ class AppController {
   }
 
   updateTaskPredecessors(taskId, predStr) {
+    const oldDeps = [...this.dependencies];
     // Remove existing dependencies for this task
-    this.dependencies = this.dependencies.filter(d => d.succ_id !== taskId);
+    const filteredDeps = this.dependencies.filter(d => d.succ_id !== taskId);
 
     const parsed = ValidationUtils.parsePredecessors(predStr);
     const numToTask = new Map();
     this.tasks.forEach(t => numToTask.set(String(t.external_number), t));
 
+    const newDeps = [...filteredDeps];
     parsed.forEach(p => {
       const predTask = numToTask.get(String(p.predNumber));
       if (predTask && predTask.id !== taskId) {
-        this.dependencies.push({
+        newDeps.push({
           id: `dep-${taskId}-${predTask.id}`,
           pred_id: predTask.id,
           succ_id: taskId,
@@ -1754,6 +1841,20 @@ class AppController {
       }
     });
 
+    const cycle = ValidationUtils.findCycle(this.tasks, newDeps);
+    if (cycle.hasCycle) {
+      const cycleNumbers = cycle.cyclePath.map(id => {
+        const t = this.tasks.find(task => task.id === id);
+        return t ? `#${t.external_number}` : id;
+      }).join(' → ');
+      this.showToast(`Обнаружена циклическая зависимость: ${cycleNumbers}. Изменения отменены!`, 'warning');
+      this.dependencies = oldDeps;
+      this.renderTaskTable();
+      return;
+    }
+
+    this.pushHistory();
+    this.dependencies = newDeps;
     this.recalculateSchedule();
   }
 
@@ -2260,6 +2361,7 @@ class AppController {
   }
 
   executeImportTasks(newTasks, newDeps) {
+    this.pushHistory();
     const mode = document.getElementById('import-mode-select').value;
     if (mode === 'replace') {
       this.tasks = newTasks;
@@ -2668,25 +2770,51 @@ class AppController {
     const menu = document.getElementById('task-context-menu');
     if (!menu) return;
 
+    const openMenuForTask = (taskId, clientX, clientY) => {
+      this.selectedTaskId = taskId;
+      this.selectedIds = [taskId];
+      this.anchorId = taskId;
+      if (this.gantt) this.gantt.selectedTaskId = taskId;
+
+      document.querySelectorAll('.task-row').forEach(r => r.classList.remove('selected'));
+      const row = document.querySelector(`.task-row[data-task-id="${taskId}"]`);
+      if (row) {
+        row.classList.add('selected');
+        row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      if (this.gantt) this.gantt.render();
+
+      menu.style.left = `${Math.min(window.innerWidth - 240, clientX)}px`;
+      menu.style.top = `${Math.min(window.innerHeight - 340, clientY)}px`;
+      menu.style.display = 'block';
+    };
+
+    // Right click on table rows
     document.addEventListener('contextmenu', (e) => {
       const row = e.target.closest('.task-row[data-task-id]');
       if (!row) {
-        menu.style.display = 'none';
+        // If clicking on Gantt canvas, let Gantt's onContextMenu handle it
+        if (!e.target.closest('#gantt-canvas')) {
+          menu.style.display = 'none';
+        }
         return;
       }
 
       e.preventDefault();
-      const taskId = row.dataset.taskId;
-      this.selectedTaskId = taskId;
-      this.gantt.selectedTaskId = taskId;
-      document.querySelectorAll('.task-row').forEach(r => r.classList.remove('selected'));
-      row.classList.add('selected');
-      this.gantt.render();
-
-      menu.style.left = `${Math.min(window.innerWidth - 230, e.clientX)}px`;
-      menu.style.top = `${Math.min(window.innerHeight - 300, e.clientY)}px`;
-      menu.style.display = 'block';
+      openMenuForTask(row.dataset.taskId, e.clientX, e.clientY);
     });
+
+    // Right click on Gantt chart task bars / milestones
+    if (this.gantt) {
+      this.gantt.onContextMenu = (task, e) => {
+        if (!task) {
+          menu.style.display = 'none';
+          return;
+        }
+        e.preventDefault();
+        openMenuForTask(task.id, e.clientX, e.clientY);
+      };
+    }
 
     document.addEventListener('click', (e) => {
       if (!e.target.closest('#task-context-menu')) {

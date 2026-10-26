@@ -663,6 +663,8 @@ body {
 
 .task-row .col-start,
 .task-row .col-finish,
+.task-row .col-start input,
+.task-row .col-finish input,
 .task-row .col-dur input,
 .task-row .col-preds input {
   font-family: var(--font-mono);

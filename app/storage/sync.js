@@ -166,12 +166,18 @@ export class SyncEngine {
       try {
         const perm = await this.fileHandle.queryPermission({ mode: 'readwrite' });
         if (perm !== 'granted') {
+          this.dbMode = 'local-pending';
           this.updateDbChip();
           return;
         }
         await this.writeToHandle();
       } catch (e) {
+        console.warn('SyncEngine: File write error, fallback to IndexedDB', e);
+        this.dbMode = 'local';
         this.updateDbChip();
+        if (this.app && this.app.showToast) {
+          this.app.showToast('Файл недоступен для записи. Данные сохранены локально в IndexedDB.', 'warning');
+        }
       }
     }, 700);
   }
@@ -199,8 +205,9 @@ export class SyncEngine {
       }
       this.updateDbChip();
     } catch (e) {
-      if (e && e.name !== 'AbortError') {
-        alert('Не удалось подключить файл: ' + e.message);
+      if (e.name !== 'AbortError') {
+        console.warn('SyncEngine: linkViaFS fallback', e);
+        this.openFileViaInput();
       }
     }
   }

@@ -38,10 +38,11 @@ export class GanttChart {
     this.initEvents();
   }
 
-  setData({ tasks = [], dependencies = [], calendar = null, startDate = null }) {
+  setData({ tasks = [], dependencies = [], calendar = null, startDate = null, project = null }) {
     this.tasks = tasks;
     this.dependencies = dependencies;
     this.calendar = calendar;
+    if (project) this.currentProject = project;
 
     // Determine min and max dates
     let minD = startDate || DateUtils.formatISO(new Date());
@@ -456,15 +457,23 @@ export class GanttChart {
       const barH = 20;
       const barY = y + (rHeight - barH) / 2;
 
-      // Baseline bar (Section 11, D-08, grey line under task)
+      // Baseline bar (Section 11, D-08, plan-fact comparison)
       if (this.currentProject?.baseline?.dates?.[t.id]) {
         const base = this.currentProject.baseline.dates[t.id];
         if (base.start && base.finish) {
           const bsX = this.dateToX(base.start) - this.scrollX;
           const bfX = this.dateToX(base.finish) + (this.options.scale === 'day' ? this.options.dayWidth : 0) - this.scrollX;
-          const bw = Math.max(3, bfX - bsX);
-          ctx.fillStyle = '#64748b';
-          ctx.fillRect(bsX, y + rHeight - 6, bw, 3);
+          const bw = Math.max(4, bfX - bsX);
+          const baselineY = y + rHeight - 7;
+          const isDelayed = t.finish_date > base.finish;
+
+          // Baseline shadow/line
+          ctx.save();
+          ctx.fillStyle = isDelayed ? 'rgba(239, 68, 68, 0.75)' : 'rgba(148, 163, 184, 0.75)';
+          ctx.beginPath();
+          ctx.roundRect ? ctx.roundRect(bsX, baselineY, bw, 4, 2) : ctx.rect(bsX, baselineY, bw, 4);
+          ctx.fill();
+          ctx.restore();
         }
       }
 
@@ -1126,6 +1135,27 @@ export class GanttChart {
         this.render();
       }
     }, { passive: false });
+
+    // Context menu support on Canvas
+    this.canvas.addEventListener('contextmenu', (e) => {
+      const hit = getTaskAtPos(e.clientX, e.clientY);
+      if (this.onContextMenu) {
+        this.onContextMenu(hit ? hit.task : null, e);
+      }
+    });
+  }
+
+  getTaskAtPosition(clientX, clientY) {
+    const rect = this.canvas.getBoundingClientRect();
+    const mouseX = clientX - rect.left;
+    const mouseY = clientY - rect.top;
+    const rHeight = this.options.rowHeight;
+    const headerH = this.options.headerHeight;
+
+    if (mouseY < headerH) return null;
+    const rowIndex = Math.floor((mouseY - headerH + this.scrollY) / rHeight);
+    if (rowIndex < 0 || rowIndex >= this.tasks.length) return null;
+    return this.tasks[rowIndex];
   }
 
   jumpToToday() {

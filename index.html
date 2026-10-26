@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles/app.css?v=2.1.3">
-  <link rel="stylesheet" href="./styles/print.css?v=2.1.3">
+  <link rel="stylesheet" href="./styles/app.css?v=2.2.0">
+  <link rel="stylesheet" href="./styles/print.css?v=2.2.0">
   <script src="./vendor/xlsx.full.min.js"></script>
 </head>
 <body>
@@ -26,7 +26,7 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
       </button>
       <span>LocalPM</span>
-      <span class="logo-badge">v2.1.2</span>
+      <span class="logo-badge">v2.2.0</span>
       <span id="current-project-badge" style="font-size: 0.85rem; font-weight: normal; color: #94a3b8; margin-left: 8px;"></span>
       <div class="db-chip" id="db-chip" title="Управление файлом базы данных localpm-data.json">
         ● БД: проверка…
@@ -309,12 +309,16 @@
       <div class="modal-body">
         <table class="shortcuts-table">
           <tbody>
+            <tr><td><span class="shortcut-badge">F2</span></td><td>Инлайн-редактирование названия выбранной задачи</td></tr>
+            <tr><td><span class="shortcut-badge">Enter</span></td><td>Открыть карточку выбранной задачи</td></tr>
+            <tr><td><span class="shortcut-badge">Ctrl + K</span></td><td>Командная палитра и быстрый поиск</td></tr>
+            <tr><td><span class="shortcut-badge">Ctrl + D</span></td><td>Быстрое дублирование задачи</td></tr>
             <tr><td><span class="shortcut-badge">Insert</span></td><td>Создать новую задачу после выбранной</td></tr>
             <tr><td><span class="shortcut-badge">Delete</span></td><td>Удалить выбранную задачу и её подзадачи</td></tr>
-            <tr><td><span class="shortcut-badge">Alt + Up</span></td><td>Переместить выбранную задачу на строку выше</td></tr>
-            <tr><td><span class="shortcut-badge">Alt + Down</span></td><td>Переместить выбранную задачу на строку ниже</td></tr>
+            <tr><td><span class="shortcut-badge">Alt + Up / Down</span></td><td>Переместить выбранную задачу выше / ниже</td></tr>
+            <tr><td><span class="shortcut-badge">Ctrl + Z / Y</span></td><td>Отмена (Undo) и повтор (Redo) действий</td></tr>
             <tr><td><span class="shortcut-badge">Ctrl + Колесо</span></td><td>Плавный зум временной шкалы графика Ганта</td></tr>
-            <tr><td><span class="shortcut-badge">Двойной клик</span></td><td>Быстрое открытие карточки задачи для редактирования</td></tr>
+            <tr><td><span class="shortcut-badge">ПКМ (Гант/Таблица)</span></td><td>Контекстное меню задачи</td></tr>
             <tr><td><span class="shortcut-badge">?</span></td><td>Открыть эту шпаргалку горячих клавиш</td></tr>
           </tbody>
         </table>
@@ -810,6 +814,6 @@
     </div>
   </div>
 
-  <script type="module" src="./app/app.js?v=2.1.4"></script>
+  <script type="module" src="./app/app.js?v=2.2.0"></script>
 </body>
 </html>
